@@ -1,0 +1,12 @@
+# Logo Backup - Original CSS-based "Y" logo
+# Created: February 2026
+# This file contains the original logo implementations before switching to logo.png
+
+## Home Page Header (34x34)
+<div style={{ width: 34, height: 34, borderRadius: 8, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, fontWeight: 800, color: "#06070B", boxShadow: "0 0 16px rgba(247,147,26,0.3)" }}>Y</div>
+
+## Footer (22x22)
+<div style={{ width: 22, height: 22, borderRadius: 5, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: "#06070B" }}>Y</div>
+
+## App Dashboard Header (36x36)
+<div style={{ width: 36, height: 36, borderRadius: 8, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 700, color: "#08090E", boxShadow: "0 0 20px rgba(247,147,26,0.3)" }}>Y</div>

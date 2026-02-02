@@ -535,7 +535,7 @@ export default function App() {
         transition: "all 0.3s", display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 8, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, fontWeight: 800, color: "#06070B", boxShadow: "0 0 16px rgba(247,147,26,0.3)" }}>Y</div>
+          <img src="/logo.png" alt="YieldsOnBitcoin" style={{ width: 34, height: 34, borderRadius: 8, boxShadow: "0 0 16px rgba(247,147,26,0.3)" }} />
           <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 16, color: "#F7F7F8", letterSpacing: "-0.02em" }}>yields<span style={{ color: "#F7931A" }}>on</span>bitcoin</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
@@ -720,7 +720,7 @@ export default function App() {
       {/* Footer */}
       <footer style={{ position: "relative", zIndex: 1, padding: "28px 40px", borderTop: "1px solid rgba(247,147,26,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 22, height: 22, borderRadius: 5, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: "#06070B" }}>Y</div>
+          <img src="/logo.png" alt="YieldsOnBitcoin" style={{ width: 22, height: 22, borderRadius: 5 }} />
           <span style={{ fontSize: 11, color: "#3F3F46" }}>© 2026 yieldsonbitcoin.com</span>
         </div>
         <div style={{ display: "flex", gap: 24, fontSize: 12 }}>
@@ -744,7 +744,7 @@ export default function App() {
         {/* Header */}
         <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 0", borderBottom: "1px solid rgba(247,147,26,0.12)", opacity: aIn ? 1 : 0, transform: aIn ? "translateY(0)" : "translateY(-10px)", transition: "all 0.6s cubic-bezier(0.22,1,0.36,1)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14, cursor: "pointer" }} onClick={() => setPage("home")}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 700, color: "#08090E", boxShadow: "0 0 20px rgba(247,147,26,0.3)" }}>Y</div>
+            <img src="/logo.png" alt="YieldsOnBitcoin" style={{ width: 36, height: 36, borderRadius: 8, boxShadow: "0 0 20px rgba(247,147,26,0.3)" }} />
             <div><div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 17, color: "#F7F7F8", letterSpacing: "-0.02em" }}>yields<span style={{ color: "#F7931A" }}>on</span>bitcoin</div><div style={{ fontSize: 10, color: "#71717A", letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 1 }}>Every BTC yield. One dashboard.</div></div>
           </div>
           <nav style={{ display: "flex", gap: 2, background: "#111218", borderRadius: 8, padding: 3, border: "1px solid #1E1F2A" }}>
