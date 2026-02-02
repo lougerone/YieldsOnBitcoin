@@ -22,25 +22,6 @@ Bitcoin holders are leaving yield on the table. The BTCFi ecosystem is fragmente
 
 ---
 
-## Protocols Tracked
-
-| Protocol | Category | APY | Risk | Chain |
-|----------|----------|-----|------|-------|
-| Babylon Labs | Native Staking | 8.2% | Low | Bitcoin |
-| Lombard Finance | Liquid Staking | 6.8% | Low | Ethereum |
-| SolvBTC | Yield Vault | 11.4% | Medium | Multi-chain |
-| Pendle BTC | Yield Trading | 14.7% | High | Ethereum |
-| Stacks Stacking | L2 Stacking | 7.5% | Low | Stacks L2 |
-| AAVE wBTC | Lending | 3.2% | Low | Ethereum |
-| Morpho Blue | Lending | 4.8% | Low | Ethereum |
-| BounceBit | CeDeFi | 9.6% | Medium | BounceBit |
-| Corn Finance | Yield Farming | 12.1% | High | Corn L2 |
-| Mezo Network | Economic Layer | 5.9% | Medium | Mezo |
-| Ethena sBTC | Basis Trade | 15.8% | High | Ethereum |
-| pSTAKE BTC | Liquid Staking | 7.1% | Low | Ethereum |
-
----
-
 ## Tech Stack
 
 - **Framework:** Next.js 15 (App Router) with React 19
