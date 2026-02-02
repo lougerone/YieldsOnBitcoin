@@ -1,37 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-
-const PROTOCOLS = [
-  { id: 1, name: "Babylon Labs", category: "Native Staking", apy: 8.2, apyRange: [7.1, 9.4], tvl: 4210, risk: "Low", chain: "Bitcoin", lockup: "21 days", minDeposit: 0.01, description: "Native BTC staking securing PoS chains. No wrapping, no bridges.", audits: 3, logo: "₿", color: "#F7931A", trend: [5.1, 5.8, 6.2, 7.1, 7.5, 7.8, 8.0, 8.2] },
-  { id: 2, name: "Lombard Finance", category: "Liquid Staking", apy: 6.8, apyRange: [5.9, 7.6], tvl: 1890, risk: "Low", chain: "Ethereum", lockup: "None", minDeposit: 0.001, description: "LBTC liquid staking token. Full DeFi composability.", audits: 4, logo: "◆", color: "#6EE7B7", trend: [4.2, 4.8, 5.5, 5.9, 6.1, 6.4, 6.6, 6.8] },
-  { id: 3, name: "SolvBTC", category: "Yield Vault", apy: 11.4, apyRange: [8.8, 14.1], tvl: 980, risk: "Medium", chain: "Multi-chain", lockup: "7 days", minDeposit: 0.005, description: "Cross-chain yield optimization across wrapped BTC.", audits: 2, logo: "◈", color: "#A78BFA", trend: [7.2, 8.1, 8.8, 9.5, 10.1, 10.8, 11.0, 11.4] },
-  { id: 4, name: "Pendle BTC", category: "Yield Trading", apy: 14.7, apyRange: [10.2, 18.5], tvl: 620, risk: "High", chain: "Ethereum", lockup: "Variable", minDeposit: 0.01, description: "Tokenized yield trading on BTC-denominated positions.", audits: 5, logo: "◉", color: "#F472B6", trend: [9.1, 10.2, 11.5, 12.0, 12.8, 13.5, 14.1, 14.7] },
-  { id: 5, name: "Stacks Stacking", category: "L2 Stacking", apy: 7.5, apyRange: [6.8, 8.2], tvl: 1340, risk: "Low", chain: "Stacks L2", lockup: "14 days", minDeposit: 0.05, description: "Earn native BTC rewards by stacking on Bitcoin L2.", audits: 3, logo: "⬡", color: "#38BDF8", trend: [6.8, 7.0, 7.1, 7.2, 7.3, 7.4, 7.4, 7.5] },
-  { id: 6, name: "AAVE wBTC", category: "Lending", apy: 3.2, apyRange: [2.1, 4.8], tvl: 3450, risk: "Low", chain: "Ethereum", lockup: "None", minDeposit: 0.001, description: "Supply wBTC to earn variable interest from borrowers.", audits: 12, logo: "◐", color: "#B4A0FF", trend: [2.1, 2.4, 2.6, 2.8, 3.0, 3.1, 3.1, 3.2] },
-  { id: 7, name: "Morpho Blue", category: "Lending", apy: 4.8, apyRange: [3.5, 6.1], tvl: 890, risk: "Low", chain: "Ethereum", lockup: "None", minDeposit: 0.001, description: "Optimized peer-to-peer lending with isolated risk.", audits: 6, logo: "◑", color: "#67E8F9", trend: [3.2, 3.5, 3.8, 4.0, 4.2, 4.5, 4.6, 4.8] },
-  { id: 8, name: "BounceBit", category: "CeDeFi", apy: 9.6, apyRange: [7.8, 11.2], tvl: 540, risk: "Medium", chain: "BounceBit", lockup: "30 days", minDeposit: 0.01, description: "CeDeFi restaking with institutional-grade custody.", audits: 2, logo: "◎", color: "#FBBF24", trend: [6.5, 7.2, 7.8, 8.2, 8.8, 9.0, 9.3, 9.6] },
-  { id: 9, name: "Corn Finance", category: "Yield Farming", apy: 12.1, apyRange: [9.0, 16.5], tvl: 310, risk: "High", chain: "Corn L2", lockup: "None", minDeposit: 0.005, description: "Hybrid BTC-powered L2 with native yield farming.", audits: 1, logo: "◇", color: "#FB923C", trend: [8.0, 8.5, 9.2, 10.0, 10.5, 11.2, 11.8, 12.1] },
-  { id: 10, name: "Mezo Network", category: "Economic Layer", apy: 5.9, apyRange: [4.5, 7.2], tvl: 720, risk: "Medium", chain: "Mezo", lockup: "Variable", minDeposit: 0.01, description: "Bitcoin economic layer enabling BTC-first applications.", audits: 2, logo: "⬢", color: "#E879F9", trend: [3.8, 4.2, 4.5, 5.0, 5.2, 5.5, 5.7, 5.9] },
-  { id: 11, name: "Ethena sBTC", category: "Basis Trade", apy: 15.8, apyRange: [8.0, 22.0], tvl: 1120, risk: "High", chain: "Ethereum", lockup: "7 days", minDeposit: 0.01, description: "Delta-neutral BTC basis trade with stablecoin yield.", audits: 4, logo: "◆", color: "#4ADE80", trend: [10.1, 11.5, 12.0, 13.2, 14.0, 14.8, 15.2, 15.8] },
-  { id: 12, name: "pSTAKE BTC", category: "Liquid Staking", apy: 7.1, apyRange: [6.0, 8.5], tvl: 380, risk: "Low", chain: "Ethereum", lockup: "None", minDeposit: 0.001, description: "Liquid staked BTC with Babylon-powered yield.", audits: 3, logo: "◈", color: "#F87171", trend: [4.8, 5.2, 5.8, 6.2, 6.5, 6.8, 7.0, 7.1] },
-];
-
-const CATEGORIES = ["All", "Native Staking", "Liquid Staking", "Lending", "Yield Vault", "Yield Trading", "Yield Farming", "CeDeFi", "L2 Stacking", "Basis Trade", "Economic Layer"];
-const RISK_LEVELS = ["All", "Low", "Medium", "High"];
-const SORT_OPTIONS = [
-  { label: "Highest APY", value: "apy-desc" },
-  { label: "Lowest APY", value: "apy-asc" },
-  { label: "Highest TVL", value: "tvl-desc" },
-  { label: "Lowest Risk", value: "risk-asc" },
-  { label: "Name A-Z", value: "name-asc" },
-];
-
-const STRATEGIES = [
-  { name: "Conservative", description: "Low risk, stable yields. Battle-tested lending and native staking.", icon: "🛡️", allocations: [{ id: 1, pct: 35 }, { id: 6, pct: 25 }, { id: 2, pct: 20 }, { id: 7, pct: 20 }], expectedApy: 5.8, riskLevel: "Low" },
-  { name: "Balanced", description: "Mixed risk for moderate yields. Core staking with select vaults.", icon: "⚖️", allocations: [{ id: 1, pct: 25 }, { id: 2, pct: 20 }, { id: 3, pct: 20 }, { id: 5, pct: 15 }, { id: 8, pct: 20 }], expectedApy: 8.4, riskLevel: "Medium" },
-  { name: "Aggressive", description: "Maximum yield. High-APY protocols with yield trading and basis trades.", icon: "🔥", allocations: [{ id: 4, pct: 30 }, { id: 11, pct: 25 }, { id: 9, pct: 20 }, { id: 3, pct: 15 }, { id: 8, pct: 10 }], expectedApy: 13.6, riskLevel: "High" },
-];
+import { useBtcPrice } from "@/lib/hooks/useBtcPrice";
+import { useProtocols } from "@/lib/hooks/useProtocols";
+import { CATEGORIES, RISK_LEVELS, SORT_OPTIONS, STRATEGIES } from "@/lib/constants/protocols";
 
 /* ─── Sparkline ─── */
 function MiniSparkline({ data, color, width = 80, height = 28 }) {
@@ -68,6 +40,55 @@ function Particles() {
   );
 }
 
+/* ─── Data Status Indicator ─── */
+function DataStatusIndicator({ priceStatus, protocolStatus, onRefresh, isValidating }) {
+  const combinedStatus = priceStatus === "offline" || protocolStatus === "offline"
+    ? "offline"
+    : priceStatus === "cached" || protocolStatus === "cached"
+      ? "cached"
+      : "live";
+
+  const statusConfig = {
+    live: { color: "#4ADE80", label: "LIVE", bg: "rgba(74, 222, 128, 0.1)" },
+    cached: { color: "#FBBF24", label: "CACHED", bg: "rgba(251, 191, 36, 0.1)" },
+    offline: { color: "#F87171", label: "OFFLINE", bg: "rgba(248, 113, 113, 0.1)" },
+  };
+
+  const { color, label, bg } = statusConfig[combinedStatus];
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{
+        display: "inline-flex", alignItems: "center", gap: 6,
+        padding: "4px 10px", borderRadius: 6,
+        background: bg, border: `1px solid ${color}30`
+      }}>
+        <span style={{
+          width: 6, height: 6, borderRadius: "50%", background: color,
+          animation: combinedStatus === "live" ? "pulse 2s infinite" : "none",
+          boxShadow: combinedStatus === "live" ? `0 0 8px ${color}` : "none"
+        }} />
+        <span style={{ fontSize: 10, fontWeight: 600, color, letterSpacing: "0.05em" }}>{label}</span>
+      </div>
+      {onRefresh && (
+        <button
+          onClick={onRefresh}
+          disabled={isValidating}
+          style={{
+            padding: "4px 8px", borderRadius: 4, border: "1px solid #1E1F2A",
+            background: "transparent", color: "#71717A", fontSize: 11,
+            cursor: isValidating ? "not-allowed" : "pointer",
+            opacity: isValidating ? 0.5 : 1,
+            fontFamily: "inherit"
+          }}
+        >
+          {isValidating ? "..." : "Refresh"}
+        </button>
+      )}
+    </div>
+  );
+}
+
 /* ═══════════════════════════ MAIN ═══════════════════════════ */
 export default function App() {
   const [page, setPage] = useState("home");
@@ -96,8 +117,17 @@ export default function App() {
     }
   }, [page]);
 
-  const btcPrice = 97842;
-  const stats = useMemo(() => ({ totalTVL: PROTOCOLS.reduce((s, p) => s + p.tvl, 0), avgApy: PROTOCOLS.reduce((s, p) => s + p.apy, 0) / PROTOCOLS.length, maxApy: Math.max(...PROTOCOLS.map(p => p.apy)), count: PROTOCOLS.length }), []);
+  // Live data hooks
+  const { price: btcPrice, status: priceStatus, isValidating: priceValidating, refresh: refreshPrice } = useBtcPrice();
+  const { protocols: PROTOCOLS, status: protocolStatus, isValidating: protocolValidating, refresh: refreshProtocols } = useProtocols();
+
+  const handleRefresh = () => {
+    refreshPrice();
+    refreshProtocols();
+  };
+  const isValidating = priceValidating || protocolValidating;
+
+  const stats = useMemo(() => ({ totalTVL: PROTOCOLS.reduce((s, p) => s + p.tvl, 0), avgApy: PROTOCOLS.reduce((s, p) => s + p.apy, 0) / PROTOCOLS.length, maxApy: Math.max(...PROTOCOLS.map(p => p.apy)), count: PROTOCOLS.length }), [PROTOCOLS]);
   const filteredProtocols = useMemo(() => {
     let l = [...PROTOCOLS];
     if (category !== "All") l = l.filter(p => p.category === category);
@@ -106,7 +136,7 @@ export default function App() {
     const [f, d] = sort.split("-");
     l.sort((a, b) => { if (f === "risk") { const o = { Low: 1, Medium: 2, High: 3 }; return d === "asc" ? o[a.risk] - o[b.risk] : o[b.risk] - o[a.risk]; } if (f === "name") return d === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name); return d === "desc" ? b[f] - a[f] : a[f] - b[f]; });
     return l;
-  }, [category, riskFilter, sort, search]);
+  }, [PROTOCOLS, category, riskFilter, sort, search]);
 
   const toggleP = (id) => setSelectedProtocols(p => p.includes(id) ? p.filter(x => x !== id) : p.length < 5 ? [...p, id] : p);
   const totalPct = Object.values(customAllocations).reduce((s, v) => s + v, 0);
@@ -114,13 +144,14 @@ export default function App() {
     if (selectedStrategy) return selectedStrategy.allocations.reduce((s, a) => s + PROTOCOLS.find(x => x.id === a.id).apy * a.pct / 100, 0);
     if (Object.keys(customAllocations).length > 0 && totalPct > 0) return Object.entries(customAllocations).reduce((s, [id, pct]) => s + PROTOCOLS.find(x => x.id === parseInt(id)).apy * pct / totalPct, 0);
     return 0;
-  }, [selectedStrategy, customAllocations, totalPct]);
+  }, [PROTOCOLS, selectedStrategy, customAllocations, totalPct]);
 
   const enterApp = () => { setPage("app"); window.scrollTo(0, 0); };
 
   const css = `
     @keyframes floatP { 0%,100%{transform:translateY(0) translateX(0)} 25%{transform:translateY(-30px) translateX(10px)} 50%{transform:translateY(-10px) translateX(-15px)} 75%{transform:translateY(-40px) translateX(5px)} }
     @keyframes pulseG { 0%,100%{box-shadow:0 0 30px rgba(247,147,26,0.2),0 0 60px rgba(247,147,26,0.1)} 50%{box-shadow:0 0 50px rgba(247,147,26,0.4),0 0 100px rgba(247,147,26,0.15)} }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
     @keyframes slideU { from{opacity:0;transform:translateY(40px)} to{opacity:1;transform:translateY(0)} }
     @keyframes slideD { from{opacity:0;transform:translateY(-20px)} to{opacity:1;transform:translateY(0)} }
     @keyframes ticker { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
@@ -372,6 +403,7 @@ export default function App() {
             ))}
           </nav>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <DataStatusIndicator priceStatus={priceStatus} protocolStatus={protocolStatus} onRefresh={handleRefresh} isValidating={isValidating} />
             <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, background: "#111218", border: "1px solid #1E1F2A", fontSize: 12, color: "#A1A1AA" }}><span style={{ color: "#F7931A", fontSize: 14 }}>₿</span><span style={{ color: "#F7F7F8", fontWeight: 600 }}>${btcPrice.toLocaleString()}</span></div>
             <button style={{ padding: "8px 20px", borderRadius: 8, border: "1px solid #F7931A", background: "linear-gradient(135deg, rgba(247,147,26,0.15), rgba(247,147,26,0.05))", color: "#F7931A", fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Connect Wallet</button>
           </div>
