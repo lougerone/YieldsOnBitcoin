@@ -28,6 +28,381 @@ function RiskBadge({ risk }) {
   );
 }
 
+/* ─── Risk Score Grade ─── */
+function RiskGrade({ risk }) {
+  const grades = { Low: { grade: "AA-", label: "Stable", color: "#4ADE80" }, Medium: { grade: "BB+", label: "Moderate", color: "#FBBF24" }, High: { grade: "B-", label: "Volatile", color: "#F87171" } };
+  const { grade, label, color } = grades[risk];
+  return (
+    <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+      <span style={{ fontFamily: "'Sora', sans-serif", fontSize: 28, fontWeight: 700, color: "#F7F7F8" }}>{grade}</span>
+      <span style={{ fontSize: 12, color }}>{label}</span>
+    </div>
+  );
+}
+
+/* ─── APY Chart Component ─── */
+function APYChart({ data, color, height = 180 }) {
+  const min = Math.min(...data) * 0.9;
+  const max = Math.max(...data) * 1.05;
+  const range = max - min || 1;
+  const barWidth = 100 / data.length;
+
+  return (
+    <div style={{ position: "relative", height, width: "100%" }}>
+      {/* Y-axis labels */}
+      <div style={{ position: "absolute", left: 0, top: 0, bottom: 20, width: 45, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+        <span style={{ fontSize: 10, color: "#52525B" }}>{max.toFixed(1)}%</span>
+        <span style={{ fontSize: 10, color: "#52525B" }}>{((max + min) / 2).toFixed(1)}%</span>
+        <span style={{ fontSize: 10, color: "#52525B" }}>{min.toFixed(1)}%</span>
+      </div>
+      {/* Chart area */}
+      <div style={{ position: "absolute", left: 50, right: 0, top: 0, bottom: 20, display: "flex", alignItems: "flex-end", gap: 4 }}>
+        {data.map((v, i) => (
+          <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+            <div style={{
+              width: "100%", maxWidth: 40,
+              height: `${((v - min) / range) * 100}%`,
+              background: `linear-gradient(180deg, ${color} 0%, ${color}60 100%)`,
+              borderRadius: "4px 4px 0 0",
+              minHeight: 8
+            }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Protocol Detail View ─── */
+function ProtocolDetail({ protocol, btcPrice, btcAmount, setBtcAmount, onBack, onAllocate }) {
+  const [chartTab, setChartTab] = useState("1W");
+  const [allocateAmount, setAllocateAmount] = useState("0.00");
+
+  // Generate mock audit data based on protocol audits count
+  const audits = [
+    { name: "CertiK Security Audit", date: "May 2024", icon: "🛡️" },
+    { name: "PeckShield Core Review", date: "Jan 2024", icon: "🔒" },
+    { name: "Halborn Assessment", date: "Nov 2023", icon: "✓" },
+    { name: "Trail of Bits Review", date: "Sep 2023", icon: "◆" },
+  ].slice(0, Math.min(protocol.audits, 4));
+
+  // Mock mechanics based on category
+  const mechanicsMap = {
+    "Native Staking": [
+      "Direct Bitcoin staking without wrapping or bridging",
+      "Secured by proof-of-stake consensus mechanisms",
+      "Native BTC rewards distributed proportionally"
+    ],
+    "Liquid Staking": [
+      "Receive liquid staking tokens representing your deposit",
+      "Full DeFi composability with underlying yield",
+      "Instant liquidity through secondary markets"
+    ],
+    "Yield Vault": [
+      "Automated strategy allocation across multiple protocols",
+      "Risk-adjusted yield optimization algorithms",
+      "Cross-chain yield aggregation and rebalancing"
+    ],
+    "Yield Trading": [
+      "Tokenized yield positions for trading exposure",
+      "Fixed and variable rate yield markets",
+      "Principal and yield token separation"
+    ],
+    "Lending": [
+      "Supply assets to earn variable interest from borrowers",
+      "Over-collateralized lending with liquidation protection",
+      "Isolated risk pools for enhanced security"
+    ],
+    "default": [
+      "Protocol-specific yield generation mechanism",
+      "Automated compounding of earned rewards",
+      "Transparent on-chain operations"
+    ]
+  };
+  const mechanics = mechanicsMap[protocol.category] || mechanicsMap.default;
+
+  // Calculate estimated yield
+  const estYearlyYield = parseFloat(allocateAmount || 0) * protocol.apy / 100;
+  const protocolFee = 0.05; // 0.05%
+
+  // Mock sentiment (random but deterministic based on protocol id)
+  const sentiment = 60 + (protocol.id * 7) % 35;
+
+  return (
+    <div style={{ animation: "slideU 0.4s ease forwards" }}>
+      {/* Breadcrumb */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24, fontSize: 13, color: "#71717A" }}>
+        <span onClick={onBack} style={{ cursor: "pointer", color: "#A1A1AA" }}>Protocols</span>
+        <span>›</span>
+        <span style={{ color: "#F7F7F8" }}>{protocol.name}</span>
+      </div>
+
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{
+            width: 64, height: 64, borderRadius: 16,
+            background: `${protocol.color}15`, border: `1px solid ${protocol.color}30`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 32, color: protocol.color
+          }}>{protocol.logo}</div>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <h1 style={{ fontFamily: "'Sora', sans-serif", fontSize: 28, fontWeight: 700, color: "#F7F7F8", margin: 0 }}>{protocol.name}</h1>
+              <span style={{ color: "#38BDF8", fontSize: 18 }}>✓</span>
+            </div>
+            <div style={{ fontSize: 13, color: "#71717A", marginTop: 4 }}>
+              {protocol.category} • <span style={{ color: protocol.color }}>{protocol.chain}</span>
+            </div>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button style={{
+            padding: "10px 20px", borderRadius: 8, border: "1px solid #1E1F2A",
+            background: "#111218", color: "#A1A1AA", fontFamily: "'Sora', sans-serif",
+            fontSize: 13, fontWeight: 500, cursor: "pointer", display: "flex", alignItems: "center", gap: 6
+          }}>
+            <span style={{ fontSize: 14 }}>↗</span> Visit Website
+          </button>
+          <button style={{
+            padding: "10px 16px", borderRadius: 8, border: "1px solid #1E1F2A",
+            background: "#111218", color: "#A1A1AA", fontSize: 14, cursor: "pointer"
+          }}>⋯</button>
+        </div>
+      </div>
+
+      {/* Stats Row */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 28 }}>
+        <div style={{ padding: "16px 20px", borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
+          <div style={{ fontSize: 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Current APY</div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+            <span style={{ fontFamily: "'Sora', sans-serif", fontSize: 28, fontWeight: 700, color: "#4ADE80" }}>{protocol.apy}%</span>
+            <span style={{ fontSize: 11, color: "#4ADE80" }}>+{((protocol.apy - protocol.apyRange[0]) / protocol.apyRange[0] * 100).toFixed(1)}%</span>
+          </div>
+        </div>
+        <div style={{ padding: "16px 20px", borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
+          <div style={{ fontSize: 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Total TVL</div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+            <span style={{ fontFamily: "'Sora', sans-serif", fontSize: 28, fontWeight: 700, color: "#F7F7F8" }}>{formatTVL(protocol.tvl)}</span>
+            <span style={{ fontSize: 11, color: "#4ADE80" }}>+5.4%</span>
+          </div>
+        </div>
+        <div style={{ padding: "16px 20px", borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
+          <div style={{ fontSize: 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Risk Score</div>
+          <RiskGrade risk={protocol.risk} />
+        </div>
+        <div style={{ padding: "16px 20px", borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
+          <div style={{ fontSize: 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Lock-up</div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+            <span style={{ fontFamily: "'Sora', sans-serif", fontSize: 28, fontWeight: 700, color: "#F7F7F8" }}>{protocol.lockup === "None" ? "None" : protocol.lockup.split(" ")[0]}</span>
+            {protocol.lockup === "None" ? (
+              <span style={{ fontSize: 11, color: "#4ADE80" }}>Liquid</span>
+            ) : (
+              <span style={{ fontSize: 11, color: "#71717A" }}>{protocol.lockup.includes("days") ? "days" : ""}</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 24 }}>
+        {/* Left Column */}
+        <div>
+          {/* APY Chart */}
+          <div style={{ padding: 24, borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A", marginBottom: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <div style={{ display: "flex", gap: 16 }}>
+                {["APY History", "TVL Growth"].map(tab => (
+                  <span key={tab} style={{
+                    fontSize: 13, fontWeight: 500, cursor: "pointer", paddingBottom: 8,
+                    color: tab === "APY History" ? "#F7931A" : "#71717A",
+                    borderBottom: tab === "APY History" ? "2px solid #F7931A" : "none"
+                  }}>{tab}</span>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 4 }}>
+                {["1D", "1W", "1M", "ALL"].map(t => (
+                  <button key={t} onClick={() => setChartTab(t)} style={{
+                    padding: "4px 12px", borderRadius: 4, border: "none",
+                    background: chartTab === t ? "rgba(247,147,26,0.15)" : "transparent",
+                    color: chartTab === t ? "#F7931A" : "#71717A",
+                    fontSize: 11, fontWeight: 500, cursor: "pointer"
+                  }}>{t}</button>
+                ))}
+              </div>
+            </div>
+            <APYChart data={protocol.trend} color={protocol.color} height={160} />
+          </div>
+
+          {/* Protocol Mechanics */}
+          <div style={{ padding: 24, borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A", marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+              <span style={{ color: "#38BDF8" }}>⚙</span>
+              <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: 16, fontWeight: 600, color: "#F7F7F8", margin: 0 }}>Protocol Mechanics</h3>
+            </div>
+            <p style={{ fontSize: 13, color: "#A1A1AA", lineHeight: 1.7, margin: "0 0 16px 0" }}>{protocol.description}</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {mechanics.map((m, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                  <span style={{ color: "#4ADE80", fontSize: 8, marginTop: 6 }}>●</span>
+                  <span style={{ fontSize: 13, color: "#71717A", lineHeight: 1.5 }}>{m}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Risk & Security Audit */}
+          <div style={{ padding: 24, borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A", marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+              <span style={{ color: "#FBBF24" }}>🛡</span>
+              <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: 16, fontWeight: 600, color: "#F7F7F8", margin: 0 }}>Risk & Security Audit</h3>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
+              {audits.map((audit, i) => (
+                <div key={i} style={{
+                  padding: "14px 16px", borderRadius: 10,
+                  background: "#0D0E14", border: "1px solid #1E1F2A",
+                  display: "flex", alignItems: "center", justifyContent: "space-between"
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 16 }}>{audit.icon}</span>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "#E4E4E7" }}>{audit.name}</div>
+                      <div style={{ fontSize: 10, color: "#52525B" }}>Passed {audit.date}</div>
+                    </div>
+                  </div>
+                  <span style={{ color: "#4ADE80" }}>✓</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* User Reviews */}
+          <div style={{ padding: 24, borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ color: "#F7931A" }}>⭐</span>
+                <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: 16, fontWeight: 600, color: "#F7F7F8", margin: 0 }}>User Reviews</h3>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ color: "#FBBF24" }}>★</span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: "#F7F7F8" }}>4.{protocol.id % 5 + 5}</span>
+                <span style={{ fontSize: 12, color: "#52525B" }}>({(protocol.id * 17 + 50)} reviews)</span>
+              </div>
+            </div>
+            <div style={{ padding: 16, borderRadius: 10, background: "#0D0E14", border: "1px solid #1E1F2A" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: protocol.color + "30", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: protocol.color }}>◆</div>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: "#A1A1AA" }}>0xCryptoWhale</span>
+                </div>
+                <div style={{ color: "#FBBF24", fontSize: 10 }}>★★★★★</div>
+              </div>
+              <p style={{ fontSize: 12, color: "#71717A", lineHeight: 1.6, margin: 0 }}>
+                Consistent yields and very clear transparency regarding the vault strategies. One of the few BTC yield options I trust with high capital.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column - Allocate Panel */}
+        <div>
+          {/* Allocate BTC Panel */}
+          <div style={{ padding: 24, borderRadius: 12, background: "linear-gradient(135deg, rgba(247,147,26,0.06), #111218)", border: "1px solid #F7931A25", position: "sticky", top: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: 16, fontWeight: 600, color: "#F7F7F8", margin: 0 }}>Allocate BTC</h3>
+              <span style={{ padding: "3px 8px", borderRadius: 4, background: "rgba(74, 222, 128, 0.15)", color: "#4ADE80", fontSize: 10, fontWeight: 600 }}>ACTIVE</span>
+            </div>
+
+            {/* Input Amount */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ fontSize: 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.08em" }}>Input Amount</span>
+                <span style={{ fontSize: 10, color: "#F7931A" }}>BALANCE: 0.245 BTC</span>
+              </div>
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "12px 16px", borderRadius: 8, background: "#08090E", border: "1px solid #1E1F2A"
+              }}>
+                <input
+                  type="text" value={allocateAmount} onChange={e => setAllocateAmount(e.target.value)}
+                  placeholder="0.00"
+                  style={{
+                    border: "none", background: "transparent", color: "#71717A",
+                    fontSize: 18, fontFamily: "'Sora', sans-serif", fontWeight: 600,
+                    outline: "none", width: 120
+                  }}
+                />
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <button style={{
+                    padding: "4px 8px", borderRadius: 4, background: "#1E1F2A",
+                    border: "none", color: "#71717A", fontSize: 10, cursor: "pointer"
+                  }}>MAX</button>
+                  <span style={{ display: "flex", alignItems: "center", gap: 4, color: "#F7F7F8", fontSize: 13, fontWeight: 600 }}>
+                    <span style={{ color: "#F7931A" }}>₿</span> BTC
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Details */}
+            <div style={{ padding: 16, borderRadius: 8, background: "#08090E", marginBottom: 20 }}>
+              {[
+                ["Estimated Yearly Yield", `${estYearlyYield.toFixed(4)} BTC`, "#4ADE80"],
+                ["Protocol Fee", `${protocolFee}%`, "#A1A1AA"],
+                ["Withdrawal Period", protocol.lockup === "None" ? "Instant" : protocol.lockup, "#A1A1AA"],
+              ].map(([l, v, c], i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: i < 2 ? 12 : 0 }}>
+                  <span style={{ fontSize: 12, color: "#71717A" }}>{l}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: c }}>{v}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* You will receive */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, padding: "0 4px" }}>
+              <span style={{ fontSize: 12, fontWeight: 500, color: "#A1A1AA" }}>You will receive</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "#F7F7F8" }}>~{allocateAmount || "0.00"} {protocol.name.split(" ")[0]}BTC</span>
+            </div>
+
+            {/* CTA Button */}
+            <button
+              onClick={() => onAllocate(protocol)}
+              style={{
+                width: "100%", padding: 16, borderRadius: 10, border: "none", cursor: "pointer",
+                background: "linear-gradient(135deg, #38BDF8, #0EA5E9)", color: "#08090E",
+                fontFamily: "'Sora', sans-serif", fontSize: 14, fontWeight: 700,
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                boxShadow: "0 4px 20px rgba(56, 189, 248, 0.3)"
+              }}
+            >
+              <span style={{ fontSize: 16 }}>₿</span> Connect Wallet to Deposit
+            </button>
+
+            <p style={{ fontSize: 10, color: "#52525B", textAlign: "center", marginTop: 12, lineHeight: 1.5 }}>
+              By depositing, you agree to the protocol's <span style={{ color: "#71717A", textDecoration: "underline", cursor: "pointer" }}>Terms of Service</span> and acknowledge the inherent smart contract risks.
+            </p>
+          </div>
+
+          {/* Market Sentiment */}
+          <div style={{ padding: 20, borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A", marginTop: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+              <span style={{ color: "#A78BFA" }}>📈</span>
+              <h4 style={{ fontFamily: "'Sora', sans-serif", fontSize: 14, fontWeight: 600, color: "#F7F7F8", margin: 0 }}>Market Sentiment</h4>
+            </div>
+            <div style={{ height: 8, borderRadius: 4, background: "#1E1F2A", overflow: "hidden", marginBottom: 8 }}>
+              <div style={{ width: `${sentiment}%`, height: "100%", background: "linear-gradient(90deg, #EF4444, #FBBF24, #4ADE80)", borderRadius: 4 }} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <span style={{ fontSize: 12, color: "#4ADE80", fontWeight: 500 }}>{sentiment}% Bullish</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function formatTVL(m) { return m >= 1000 ? `$${(m / 1000).toFixed(1)}B` : `$${m}M`; }
 
 /* ─── Particles ─── */
@@ -107,6 +482,7 @@ export default function App() {
   const [hProt, setHProt] = useState(null);
   const [xProt, setXProt] = useState(null);
   const [scrollY, setScrollY] = useState(0);
+  const [viewingProtocol, setViewingProtocol] = useState(null);
 
   useEffect(() => { setTimeout(() => setAIn(true), 80); }, []);
   useEffect(() => {
@@ -428,66 +804,80 @@ export default function App() {
         {/* ═══ EXPLORE ═══ */}
         {view === "explore" && (
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-              <div style={{ position: "relative", flex: "1 1 240px", maxWidth: 320 }}>
-                <input type="text" placeholder="Search protocols..." value={search} onChange={e => setSearch(e.target.value)} style={{ width: "100%", padding: "10px 14px 10px 36px", borderRadius: 8, border: "1px solid #1E1F2A", background: "#111218", color: "#E4E4E7", fontSize: 13, fontFamily: "inherit", outline: "none" }} onFocus={e => e.target.style.borderColor = "#F7931A40"} onBlur={e => e.target.style.borderColor = "#1E1F2A"} />
-                <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#52525B", fontSize: 14 }}>⌕</span>
-              </div>
-              {[[category, setCategory, CATEGORIES, "All Categories", 140], [riskFilter, setRiskFilter, RISK_LEVELS, "All Risk", 110]].map(([v, sv, opts, all, w], i) => (
-                <select key={i} value={v} onChange={e => sv(e.target.value)} style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid #1E1F2A", background: "#111218", color: "#A1A1AA", fontSize: 12, fontFamily: "inherit", cursor: "pointer", outline: "none", minWidth: w }}>
-                  {opts.map(o => <option key={o} value={o}>{o === "All" ? all : o === "Low" || o === "Medium" || o === "High" ? `${o} Risk` : o}</option>)}
-                </select>
-              ))}
-              <select value={sort} onChange={e => setSort(e.target.value)} style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid #1E1F2A", background: "#111218", color: "#A1A1AA", fontSize: 12, fontFamily: "inherit", cursor: "pointer", outline: "none", minWidth: 140 }}>
-                {SORT_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-              </select>
-              {selectedProtocols.length >= 2 && <button onClick={() => setComparing(!comparing)} style={{ padding: "10px 18px", borderRadius: 8, border: comparing ? "1px solid #F7931A" : "1px solid #F7931A50", background: comparing ? "rgba(247,147,26,0.12)" : "transparent", color: "#F7931A", fontSize: 12, fontWeight: 600, fontFamily: "'Sora', sans-serif", cursor: "pointer" }}>{comparing ? "✕ Close" : `Compare (${selectedProtocols.length})`}</button>}
-            </div>
-
-            {comparing && selectedProtocols.length >= 2 && (
-              <div style={{ marginBottom: 24, padding: 24, borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #F7931A20" }}>
-                <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: 16, fontWeight: 600, color: "#F7F7F8", marginBottom: 16, marginTop: 0 }}>Protocol Comparison</h3>
-                <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                  <thead><tr>{["Protocol", "Category", "APY", "Range", "TVL", "Risk", "Chain", "Lock", "Audits"].map(h => <th key={h} style={{ textAlign: "left", padding: "10px 14px", color: "#71717A", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", borderBottom: "1px solid #1E1F2A", whiteSpace: "nowrap" }}>{h}</th>)}</tr></thead>
-                  <tbody>{selectedProtocols.map(id => { const p = PROTOCOLS.find(x => x.id === id); return (<tr key={id}><td style={{ padding: "12px 14px", fontWeight: 600, color: "#F7F7F8" }}><span style={{ color: p.color, marginRight: 8 }}>{p.logo}</span>{p.name}</td><td style={{ padding: "12px 14px", color: "#A1A1AA" }}>{p.category}</td><td style={{ padding: "12px 14px", color: "#4ADE80", fontWeight: 700, fontFamily: "'Sora'" }}>{p.apy}%</td><td style={{ padding: "12px 14px", color: "#71717A" }}>{p.apyRange[0]}–{p.apyRange[1]}%</td><td style={{ padding: "12px 14px", color: "#A1A1AA" }}>{formatTVL(p.tvl)}</td><td style={{ padding: "12px 14px" }}><RiskBadge risk={p.risk} /></td><td style={{ padding: "12px 14px", color: "#A1A1AA" }}>{p.chain}</td><td style={{ padding: "12px 14px", color: "#A1A1AA" }}>{p.lockup}</td><td style={{ padding: "12px 14px", color: "#A1A1AA" }}>{p.audits}</td></tr>); })}</tbody>
-                </table></div>
-              </div>
-            )}
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))", gap: 14 }}>
-              {filteredProtocols.map(p => (
-                <div key={p.id} onMouseEnter={() => setHProt(p.id)} onMouseLeave={() => setHProt(null)} onClick={() => setXProt(xProt === p.id ? null : p.id)}
-                  style={{ padding: 20, borderRadius: 12, cursor: "pointer", background: selectedProtocols.includes(p.id) ? "linear-gradient(135deg, rgba(247,147,26,0.08), #111218)" : hProt === p.id ? "linear-gradient(135deg, #151620, #111218)" : "linear-gradient(135deg, #111218, #0D0E14)", border: selectedProtocols.includes(p.id) ? "1px solid #F7931A40" : "1px solid #1E1F2A", transition: "all 0.25s", transform: hProt === p.id ? "translateY(-2px)" : "none", boxShadow: hProt === p.id ? `0 8px 32px ${p.color}10` : "none" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <div style={{ width: 40, height: 40, borderRadius: 10, background: `${p.color}15`, border: `1px solid ${p.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, color: p.color }}>{p.logo}</div>
-                      <div><div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: 15, color: "#F7F7F8" }}>{p.name}</div><div style={{ fontSize: 11, color: "#71717A", marginTop: 2 }}>{p.category} · {p.chain}</div></div>
-                    </div>
-                    <div style={{ textAlign: "right" }}><div style={{ fontFamily: "'Sora', sans-serif", fontSize: 24, fontWeight: 700, color: "#4ADE80", letterSpacing: "-0.02em", lineHeight: 1 }}>{p.apy}%</div><div style={{ fontSize: 10, color: "#52525B", marginTop: 2 }}>APY</div></div>
+            {viewingProtocol ? (
+              <ProtocolDetail
+                protocol={viewingProtocol}
+                btcPrice={btcPrice}
+                btcAmount={btcAmount}
+                setBtcAmount={setBtcAmount}
+                onBack={() => setViewingProtocol(null)}
+                onAllocate={(p) => { setCustomAllocations(pr => ({ ...pr, [p.id]: pr[p.id] || 25 })); setView("allocate"); setViewingProtocol(null); }}
+              />
+            ) : (
+              <>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+                  <div style={{ position: "relative", flex: "1 1 240px", maxWidth: 320 }}>
+                    <input type="text" placeholder="Search protocols..." value={search} onChange={e => setSearch(e.target.value)} style={{ width: "100%", padding: "10px 14px 10px 36px", borderRadius: 8, border: "1px solid #1E1F2A", background: "#111218", color: "#E4E4E7", fontSize: 13, fontFamily: "inherit", outline: "none" }} onFocus={e => e.target.style.borderColor = "#F7931A40"} onBlur={e => e.target.style.borderColor = "#1E1F2A"} />
+                    <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#52525B", fontSize: 14 }}>⌕</span>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                    <div style={{ display: "flex", gap: 16 }}>
-                      {[["TVL", formatTVL(p.tvl)], ["Lock", p.lockup]].map(([l, v]) => <div key={l}><div style={{ fontSize: 10, color: "#52525B", textTransform: "uppercase", letterSpacing: "0.08em" }}>{l}</div><div style={{ fontSize: 13, color: "#A1A1AA", fontWeight: 500, marginTop: 2 }}>{v}</div></div>)}
-                      <div><div style={{ fontSize: 10, color: "#52525B", textTransform: "uppercase", letterSpacing: "0.08em" }}>Risk</div><div style={{ marginTop: 2 }}><RiskBadge risk={p.risk} /></div></div>
-                    </div>
-                    <MiniSparkline data={p.trend} color={p.color} />
-                  </div>
-                  {xProt === p.id && (
-                    <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${p.color}20` }}>
-                      <p style={{ fontSize: 12, color: "#A1A1AA", lineHeight: 1.6, margin: "0 0 14px 0" }}>{p.description}</p>
-                      <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
-                        <div style={{ fontSize: 11, color: "#52525B" }}>Range: {p.apyRange[0]}–{p.apyRange[1]}% · {p.audits} audits · Min: {p.minDeposit} BTC</div>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <button onClick={e => { e.stopPropagation(); toggleP(p.id); }} style={{ padding: "6px 14px", borderRadius: 6, fontSize: 11, fontWeight: 600, fontFamily: "'Sora'", cursor: "pointer", border: "none", background: selectedProtocols.includes(p.id) ? "#F7931A20" : "#1E1F2A", color: selectedProtocols.includes(p.id) ? "#F7931A" : "#A1A1AA" }}>{selectedProtocols.includes(p.id) ? "✓ Selected" : "+ Compare"}</button>
-                          <button onClick={e => { e.stopPropagation(); setCustomAllocations(pr => ({ ...pr, [p.id]: pr[p.id] || 25 })); setView("allocate"); }} style={{ padding: "6px 14px", borderRadius: 6, fontSize: 11, fontWeight: 600, fontFamily: "'Sora'", cursor: "pointer", border: "1px solid #F7931A50", background: "rgba(247,147,26,0.08)", color: "#F7931A" }}>Allocate →</button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  {[[category, setCategory, CATEGORIES, "All Categories", 140], [riskFilter, setRiskFilter, RISK_LEVELS, "All Risk", 110]].map(([v, sv, opts, all, w], i) => (
+                    <select key={i} value={v} onChange={e => sv(e.target.value)} style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid #1E1F2A", background: "#111218", color: "#A1A1AA", fontSize: 12, fontFamily: "inherit", cursor: "pointer", outline: "none", minWidth: w }}>
+                      {opts.map(o => <option key={o} value={o}>{o === "All" ? all : o === "Low" || o === "Medium" || o === "High" ? `${o} Risk` : o}</option>)}
+                    </select>
+                  ))}
+                  <select value={sort} onChange={e => setSort(e.target.value)} style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid #1E1F2A", background: "#111218", color: "#A1A1AA", fontSize: 12, fontFamily: "inherit", cursor: "pointer", outline: "none", minWidth: 140 }}>
+                    {SORT_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  </select>
+                  {selectedProtocols.length >= 2 && <button onClick={() => setComparing(!comparing)} style={{ padding: "10px 18px", borderRadius: 8, border: comparing ? "1px solid #F7931A" : "1px solid #F7931A50", background: comparing ? "rgba(247,147,26,0.12)" : "transparent", color: "#F7931A", fontSize: 12, fontWeight: 600, fontFamily: "'Sora', sans-serif", cursor: "pointer" }}>{comparing ? "✕ Close" : `Compare (${selectedProtocols.length})`}</button>}
                 </div>
-              ))}
-            </div>
-            {filteredProtocols.length === 0 && <div style={{ textAlign: "center", padding: "60px 20px", color: "#52525B" }}><div style={{ fontSize: 32, marginBottom: 12 }}>∅</div><div style={{ fontFamily: "'Sora'", fontSize: 16, fontWeight: 500 }}>No protocols match</div></div>}
+
+                {comparing && selectedProtocols.length >= 2 && (
+                  <div style={{ marginBottom: 24, padding: 24, borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #F7931A20" }}>
+                    <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: 16, fontWeight: 600, color: "#F7F7F8", marginBottom: 16, marginTop: 0 }}>Protocol Comparison</h3>
+                    <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                      <thead><tr>{["Protocol", "Category", "APY", "Range", "TVL", "Risk", "Chain", "Lock", "Audits"].map(h => <th key={h} style={{ textAlign: "left", padding: "10px 14px", color: "#71717A", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", borderBottom: "1px solid #1E1F2A", whiteSpace: "nowrap" }}>{h}</th>)}</tr></thead>
+                      <tbody>{selectedProtocols.map(id => { const p = PROTOCOLS.find(x => x.id === id); return (<tr key={id}><td style={{ padding: "12px 14px", fontWeight: 600, color: "#F7F7F8" }}><span style={{ color: p.color, marginRight: 8 }}>{p.logo}</span>{p.name}</td><td style={{ padding: "12px 14px", color: "#A1A1AA" }}>{p.category}</td><td style={{ padding: "12px 14px", color: "#4ADE80", fontWeight: 700, fontFamily: "'Sora'" }}>{p.apy}%</td><td style={{ padding: "12px 14px", color: "#71717A" }}>{p.apyRange[0]}–{p.apyRange[1]}%</td><td style={{ padding: "12px 14px", color: "#A1A1AA" }}>{formatTVL(p.tvl)}</td><td style={{ padding: "12px 14px" }}><RiskBadge risk={p.risk} /></td><td style={{ padding: "12px 14px", color: "#A1A1AA" }}>{p.chain}</td><td style={{ padding: "12px 14px", color: "#A1A1AA" }}>{p.lockup}</td><td style={{ padding: "12px 14px", color: "#A1A1AA" }}>{p.audits}</td></tr>); })}</tbody>
+                    </table></div>
+                  </div>
+                )}
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))", gap: 14 }}>
+                  {filteredProtocols.map(p => (
+                    <div key={p.id} onMouseEnter={() => setHProt(p.id)} onMouseLeave={() => setHProt(null)} onClick={() => setXProt(xProt === p.id ? null : p.id)}
+                      style={{ padding: 20, borderRadius: 12, cursor: "pointer", background: selectedProtocols.includes(p.id) ? "linear-gradient(135deg, rgba(247,147,26,0.08), #111218)" : hProt === p.id ? "linear-gradient(135deg, #151620, #111218)" : "linear-gradient(135deg, #111218, #0D0E14)", border: selectedProtocols.includes(p.id) ? "1px solid #F7931A40" : "1px solid #1E1F2A", transition: "all 0.25s", transform: hProt === p.id ? "translateY(-2px)" : "none", boxShadow: hProt === p.id ? `0 8px 32px ${p.color}10` : "none" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <div style={{ width: 40, height: 40, borderRadius: 10, background: `${p.color}15`, border: `1px solid ${p.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, color: p.color }}>{p.logo}</div>
+                          <div><div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: 15, color: "#F7F7F8" }}>{p.name}</div><div style={{ fontSize: 11, color: "#71717A", marginTop: 2 }}>{p.category} · {p.chain}</div></div>
+                        </div>
+                        <div style={{ textAlign: "right" }}><div style={{ fontFamily: "'Sora', sans-serif", fontSize: 24, fontWeight: 700, color: "#4ADE80", letterSpacing: "-0.02em", lineHeight: 1 }}>{p.apy}%</div><div style={{ fontSize: 10, color: "#52525B", marginTop: 2 }}>APY</div></div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                        <div style={{ display: "flex", gap: 16 }}>
+                          {[["TVL", formatTVL(p.tvl)], ["Lock", p.lockup]].map(([l, v]) => <div key={l}><div style={{ fontSize: 10, color: "#52525B", textTransform: "uppercase", letterSpacing: "0.08em" }}>{l}</div><div style={{ fontSize: 13, color: "#A1A1AA", fontWeight: 500, marginTop: 2 }}>{v}</div></div>)}
+                          <div><div style={{ fontSize: 10, color: "#52525B", textTransform: "uppercase", letterSpacing: "0.08em" }}>Risk</div><div style={{ marginTop: 2 }}><RiskBadge risk={p.risk} /></div></div>
+                        </div>
+                        <MiniSparkline data={p.trend} color={p.color} />
+                      </div>
+                      {xProt === p.id && (
+                        <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${p.color}20` }}>
+                          <p style={{ fontSize: 12, color: "#A1A1AA", lineHeight: 1.6, margin: "0 0 14px 0" }}>{p.description}</p>
+                          <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
+                            <div style={{ fontSize: 11, color: "#52525B" }}>Range: {p.apyRange[0]}–{p.apyRange[1]}% · {p.audits} audits · Min: {p.minDeposit} BTC</div>
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <button onClick={e => { e.stopPropagation(); toggleP(p.id); }} style={{ padding: "6px 14px", borderRadius: 6, fontSize: 11, fontWeight: 600, fontFamily: "'Sora'", cursor: "pointer", border: "none", background: selectedProtocols.includes(p.id) ? "#F7931A20" : "#1E1F2A", color: selectedProtocols.includes(p.id) ? "#F7931A" : "#A1A1AA" }}>{selectedProtocols.includes(p.id) ? "✓ Selected" : "+ Compare"}</button>
+                              <button onClick={e => { e.stopPropagation(); setViewingProtocol(p); }} style={{ padding: "6px 14px", borderRadius: 6, fontSize: 11, fontWeight: 600, fontFamily: "'Sora'", cursor: "pointer", border: "1px solid #38BDF850", background: "rgba(56,189,248,0.08)", color: "#38BDF8" }}>View Details</button>
+                              <button onClick={e => { e.stopPropagation(); setCustomAllocations(pr => ({ ...pr, [p.id]: pr[p.id] || 25 })); setView("allocate"); }} style={{ padding: "6px 14px", borderRadius: 6, fontSize: 11, fontWeight: 600, fontFamily: "'Sora'", cursor: "pointer", border: "1px solid #F7931A50", background: "rgba(247,147,26,0.08)", color: "#F7931A" }}>Allocate →</button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {filteredProtocols.length === 0 && <div style={{ textAlign: "center", padding: "60px 20px", color: "#52525B" }}><div style={{ fontSize: 32, marginBottom: 12 }}>∅</div><div style={{ fontFamily: "'Sora'", fontSize: 16, fontWeight: 500 }}>No protocols match</div></div>}
+              </>
+            )}
           </div>
         )}
 
