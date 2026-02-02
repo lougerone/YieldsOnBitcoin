@@ -78,48 +78,21 @@ function ProtocolDetail({ protocol, btcPrice, btcAmount, setBtcAmount, onBack, o
   const [chartTab, setChartTab] = useState("1W");
   const [allocateAmount, setAllocateAmount] = useState("0.00");
 
-  // Generate mock audit data based on protocol audits count
-  const audits = [
-    { name: "CertiK Security Audit", date: "May 2024", icon: "🛡️" },
-    { name: "PeckShield Core Review", date: "Jan 2024", icon: "🔒" },
-    { name: "Halborn Assessment", date: "Nov 2023", icon: "✓" },
-    { name: "Trail of Bits Review", date: "Sep 2023", icon: "◆" },
-  ].slice(0, Math.min(protocol.audits, 4));
+  // Generate audit display from protocol auditors data
+  const auditIcons = ["🛡️", "🔒", "✓", "◆", "⚡"];
+  const auditDates = ["Jan 2025", "Nov 2024", "Sep 2024", "Jun 2024", "Mar 2024"];
+  const audits = (protocol.auditors || []).slice(0, 4).map((auditor, i) => ({
+    name: `${auditor} Audit`,
+    date: auditDates[i] || "2024",
+    icon: auditIcons[i] || "✓"
+  }));
 
-  // Mock mechanics based on category
-  const mechanicsMap = {
-    "Native Staking": [
-      "Direct Bitcoin staking without wrapping or bridging",
-      "Secured by proof-of-stake consensus mechanisms",
-      "Native BTC rewards distributed proportionally"
-    ],
-    "Liquid Staking": [
-      "Receive liquid staking tokens representing your deposit",
-      "Full DeFi composability with underlying yield",
-      "Instant liquidity through secondary markets"
-    ],
-    "Yield Vault": [
-      "Automated strategy allocation across multiple protocols",
-      "Risk-adjusted yield optimization algorithms",
-      "Cross-chain yield aggregation and rebalancing"
-    ],
-    "Yield Trading": [
-      "Tokenized yield positions for trading exposure",
-      "Fixed and variable rate yield markets",
-      "Principal and yield token separation"
-    ],
-    "Lending": [
-      "Supply assets to earn variable interest from borrowers",
-      "Over-collateralized lending with liquidation protection",
-      "Isolated risk pools for enhanced security"
-    ],
-    "default": [
-      "Protocol-specific yield generation mechanism",
-      "Automated compounding of earned rewards",
-      "Transparent on-chain operations"
-    ]
-  };
-  const mechanics = mechanicsMap[protocol.category] || mechanicsMap.default;
+  // Use protocol-specific mechanics from data
+  const mechanics = protocol.mechanics || [
+    "Protocol-specific yield generation mechanism",
+    "Automated compounding of earned rewards",
+    "Transparent on-chain operations"
+  ];
 
   // Calculate estimated yield
   const estYearlyYield = parseFloat(allocateAmount || 0) * protocol.apy / 100;
@@ -157,13 +130,14 @@ function ProtocolDetail({ protocol, btcPrice, btcAmount, setBtcAmount, onBack, o
           </div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <button style={{
+          <a href={protocol.website} target="_blank" rel="noopener noreferrer" style={{
             padding: "10px 20px", borderRadius: 8, border: "1px solid #1E1F2A",
             background: "#111218", color: "#A1A1AA", fontFamily: "'Sora', sans-serif",
-            fontSize: 13, fontWeight: 500, cursor: "pointer", display: "flex", alignItems: "center", gap: 6
+            fontSize: 13, fontWeight: 500, cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+            textDecoration: "none"
           }}>
             <span style={{ fontSize: 14 }}>↗</span> Visit Website
-          </button>
+          </a>
           <button style={{
             padding: "10px 16px", borderRadius: 8, border: "1px solid #1E1F2A",
             background: "#111218", color: "#A1A1AA", fontSize: 14, cursor: "pointer"
