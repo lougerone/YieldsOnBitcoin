@@ -1,0 +1,587 @@
+import { useState, useEffect, useRef, useMemo } from "react";
+
+const PROTOCOLS = [
+  { id: 1, name: "Babylon Labs", category: "Native Staking", apy: 8.2, apyRange: [7.1, 9.4], tvl: 4210, risk: "Low", chain: "Bitcoin", lockup: "21 days", minDeposit: 0.01, description: "Native BTC staking securing PoS chains. No wrapping, no bridges.", audits: 3, logo: "₿", color: "#F7931A", trend: [5.1, 5.8, 6.2, 7.1, 7.5, 7.8, 8.0, 8.2] },
+  { id: 2, name: "Lombard Finance", category: "Liquid Staking", apy: 6.8, apyRange: [5.9, 7.6], tvl: 1890, risk: "Low", chain: "Ethereum", lockup: "None", minDeposit: 0.001, description: "LBTC liquid staking token. Full DeFi composability.", audits: 4, logo: "◆", color: "#6EE7B7", trend: [4.2, 4.8, 5.5, 5.9, 6.1, 6.4, 6.6, 6.8] },
+  { id: 3, name: "SolvBTC", category: "Yield Vault", apy: 11.4, apyRange: [8.8, 14.1], tvl: 980, risk: "Medium", chain: "Multi-chain", lockup: "7 days", minDeposit: 0.005, description: "Cross-chain yield optimization across wrapped BTC.", audits: 2, logo: "◈", color: "#A78BFA", trend: [7.2, 8.1, 8.8, 9.5, 10.1, 10.8, 11.0, 11.4] },
+  { id: 4, name: "Pendle BTC", category: "Yield Trading", apy: 14.7, apyRange: [10.2, 18.5], tvl: 620, risk: "High", chain: "Ethereum", lockup: "Variable", minDeposit: 0.01, description: "Tokenized yield trading on BTC-denominated positions.", audits: 5, logo: "◉", color: "#F472B6", trend: [9.1, 10.2, 11.5, 12.0, 12.8, 13.5, 14.1, 14.7] },
+  { id: 5, name: "Stacks Stacking", category: "L2 Stacking", apy: 7.5, apyRange: [6.8, 8.2], tvl: 1340, risk: "Low", chain: "Stacks L2", lockup: "14 days", minDeposit: 0.05, description: "Earn native BTC rewards by stacking on Bitcoin L2.", audits: 3, logo: "⬡", color: "#38BDF8", trend: [6.8, 7.0, 7.1, 7.2, 7.3, 7.4, 7.4, 7.5] },
+  { id: 6, name: "AAVE wBTC", category: "Lending", apy: 3.2, apyRange: [2.1, 4.8], tvl: 3450, risk: "Low", chain: "Ethereum", lockup: "None", minDeposit: 0.001, description: "Supply wBTC to earn variable interest from borrowers.", audits: 12, logo: "◐", color: "#B4A0FF", trend: [2.1, 2.4, 2.6, 2.8, 3.0, 3.1, 3.1, 3.2] },
+  { id: 7, name: "Morpho Blue", category: "Lending", apy: 4.8, apyRange: [3.5, 6.1], tvl: 890, risk: "Low", chain: "Ethereum", lockup: "None", minDeposit: 0.001, description: "Optimized peer-to-peer lending with isolated risk.", audits: 6, logo: "◑", color: "#67E8F9", trend: [3.2, 3.5, 3.8, 4.0, 4.2, 4.5, 4.6, 4.8] },
+  { id: 8, name: "BounceBit", category: "CeDeFi", apy: 9.6, apyRange: [7.8, 11.2], tvl: 540, risk: "Medium", chain: "BounceBit", lockup: "30 days", minDeposit: 0.01, description: "CeDeFi restaking with institutional-grade custody.", audits: 2, logo: "◎", color: "#FBBF24", trend: [6.5, 7.2, 7.8, 8.2, 8.8, 9.0, 9.3, 9.6] },
+  { id: 9, name: "Corn Finance", category: "Yield Farming", apy: 12.1, apyRange: [9.0, 16.5], tvl: 310, risk: "High", chain: "Corn L2", lockup: "None", minDeposit: 0.005, description: "Hybrid BTC-powered L2 with native yield farming.", audits: 1, logo: "◇", color: "#FB923C", trend: [8.0, 8.5, 9.2, 10.0, 10.5, 11.2, 11.8, 12.1] },
+  { id: 10, name: "Mezo Network", category: "Economic Layer", apy: 5.9, apyRange: [4.5, 7.2], tvl: 720, risk: "Medium", chain: "Mezo", lockup: "Variable", minDeposit: 0.01, description: "Bitcoin economic layer enabling BTC-first applications.", audits: 2, logo: "⬢", color: "#E879F9", trend: [3.8, 4.2, 4.5, 5.0, 5.2, 5.5, 5.7, 5.9] },
+  { id: 11, name: "Ethena sBTC", category: "Basis Trade", apy: 15.8, apyRange: [8.0, 22.0], tvl: 1120, risk: "High", chain: "Ethereum", lockup: "7 days", minDeposit: 0.01, description: "Delta-neutral BTC basis trade with stablecoin yield.", audits: 4, logo: "◆", color: "#4ADE80", trend: [10.1, 11.5, 12.0, 13.2, 14.0, 14.8, 15.2, 15.8] },
+  { id: 12, name: "pSTAKE BTC", category: "Liquid Staking", apy: 7.1, apyRange: [6.0, 8.5], tvl: 380, risk: "Low", chain: "Ethereum", lockup: "None", minDeposit: 0.001, description: "Liquid staked BTC with Babylon-powered yield.", audits: 3, logo: "◈", color: "#F87171", trend: [4.8, 5.2, 5.8, 6.2, 6.5, 6.8, 7.0, 7.1] },
+];
+
+const CATEGORIES = ["All", "Native Staking", "Liquid Staking", "Lending", "Yield Vault", "Yield Trading", "Yield Farming", "CeDeFi", "L2 Stacking", "Basis Trade", "Economic Layer"];
+const RISK_LEVELS = ["All", "Low", "Medium", "High"];
+const SORT_OPTIONS = [
+  { label: "Highest APY", value: "apy-desc" },
+  { label: "Lowest APY", value: "apy-asc" },
+  { label: "Highest TVL", value: "tvl-desc" },
+  { label: "Lowest Risk", value: "risk-asc" },
+  { label: "Name A-Z", value: "name-asc" },
+];
+
+const STRATEGIES = [
+  { name: "Conservative", description: "Low risk, stable yields. Battle-tested lending and native staking.", icon: "🛡️", allocations: [{ id: 1, pct: 35 }, { id: 6, pct: 25 }, { id: 2, pct: 20 }, { id: 7, pct: 20 }], expectedApy: 5.8, riskLevel: "Low" },
+  { name: "Balanced", description: "Mixed risk for moderate yields. Core staking with select vaults.", icon: "⚖️", allocations: [{ id: 1, pct: 25 }, { id: 2, pct: 20 }, { id: 3, pct: 20 }, { id: 5, pct: 15 }, { id: 8, pct: 20 }], expectedApy: 8.4, riskLevel: "Medium" },
+  { name: "Aggressive", description: "Maximum yield. High-APY protocols with yield trading and basis trades.", icon: "🔥", allocations: [{ id: 4, pct: 30 }, { id: 11, pct: 25 }, { id: 9, pct: 20 }, { id: 3, pct: 15 }, { id: 8, pct: 10 }], expectedApy: 13.6, riskLevel: "High" },
+];
+
+/* ─── Sparkline ─── */
+function MiniSparkline({ data, color, width = 80, height = 28 }) {
+  const min = Math.min(...data), max = Math.max(...data), range = max - min || 1;
+  const pts = data.map((v, i) => `${(i / (data.length - 1)) * width},${height - ((v - min) / range) * (height - 4) - 2}`).join(" ");
+  const uid = `sg${color.replace("#", "")}${width}`;
+  return (
+    <svg width={width} height={height} style={{ display: "block" }}>
+      <defs><linearGradient id={uid} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={color} stopOpacity="0.3" /><stop offset="100%" stopColor={color} stopOpacity="0" /></linearGradient></defs>
+      <polygon points={`0,${height} ${pts} ${width},${height}`} fill={`url(#${uid})`} />
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function RiskBadge({ risk }) {
+  const c = { Low: "#4ADE80", Medium: "#FBBF24", High: "#F87171" }[risk];
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 600, background: `${c}15`, color: c, border: `1px solid ${c}30`, letterSpacing: "0.03em", textTransform: "uppercase" }}>
+      <span style={{ width: 5, height: 5, borderRadius: "50%", background: c }} />{risk}
+    </span>
+  );
+}
+
+function formatTVL(m) { return m >= 1000 ? `$${(m / 1000).toFixed(1)}B` : `$${m}M`; }
+
+/* ─── Particles ─── */
+function Particles() {
+  const ps = useMemo(() => Array.from({ length: 25 }, (_, i) => ({ id: i, x: Math.random() * 100, y: Math.random() * 100, s: 1 + Math.random() * 2, d: 15 + Math.random() * 25, dl: Math.random() * -20, o: 0.08 + Math.random() * 0.2 })), []);
+  return (
+    <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
+      {ps.map(p => <div key={p.id} style={{ position: "absolute", left: `${p.x}%`, top: `${p.y}%`, width: p.s, height: p.s, borderRadius: "50%", background: "#F7931A", opacity: p.o, animation: `floatP ${p.d}s ease-in-out ${p.dl}s infinite` }} />)}
+    </div>
+  );
+}
+
+/* ═══════════════════════════ MAIN ═══════════════════════════ */
+export default function App() {
+  const [page, setPage] = useState("home");
+  const [view, setView] = useState("explore");
+  const [category, setCategory] = useState("All");
+  const [riskFilter, setRiskFilter] = useState("All");
+  const [sort, setSort] = useState("apy-desc");
+  const [search, setSearch] = useState("");
+  const [selectedProtocols, setSelectedProtocols] = useState([]);
+  const [comparing, setComparing] = useState(false);
+  const [btcAmount, setBtcAmount] = useState("1.0");
+  const [selectedStrategy, setSelectedStrategy] = useState(null);
+  const [customAllocations, setCustomAllocations] = useState({});
+  const [showModal, setShowModal] = useState(false);
+  const [aIn, setAIn] = useState(false);
+  const [hProt, setHProt] = useState(null);
+  const [xProt, setXProt] = useState(null);
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => { setTimeout(() => setAIn(true), 80); }, []);
+  useEffect(() => {
+    if (page === "home") {
+      const h = () => setScrollY(window.scrollY);
+      window.addEventListener("scroll", h, { passive: true });
+      return () => window.removeEventListener("scroll", h);
+    }
+  }, [page]);
+
+  const btcPrice = 97842;
+  const stats = useMemo(() => ({ totalTVL: PROTOCOLS.reduce((s, p) => s + p.tvl, 0), avgApy: PROTOCOLS.reduce((s, p) => s + p.apy, 0) / PROTOCOLS.length, maxApy: Math.max(...PROTOCOLS.map(p => p.apy)), count: PROTOCOLS.length }), []);
+  const filteredProtocols = useMemo(() => {
+    let l = [...PROTOCOLS];
+    if (category !== "All") l = l.filter(p => p.category === category);
+    if (riskFilter !== "All") l = l.filter(p => p.risk === riskFilter);
+    if (search) l = l.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase()));
+    const [f, d] = sort.split("-");
+    l.sort((a, b) => { if (f === "risk") { const o = { Low: 1, Medium: 2, High: 3 }; return d === "asc" ? o[a.risk] - o[b.risk] : o[b.risk] - o[a.risk]; } if (f === "name") return d === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name); return d === "desc" ? b[f] - a[f] : a[f] - b[f]; });
+    return l;
+  }, [category, riskFilter, sort, search]);
+
+  const toggleP = (id) => setSelectedProtocols(p => p.includes(id) ? p.filter(x => x !== id) : p.length < 5 ? [...p, id] : p);
+  const totalPct = Object.values(customAllocations).reduce((s, v) => s + v, 0);
+  const wApy = useMemo(() => {
+    if (selectedStrategy) return selectedStrategy.allocations.reduce((s, a) => s + PROTOCOLS.find(x => x.id === a.id).apy * a.pct / 100, 0);
+    if (Object.keys(customAllocations).length > 0 && totalPct > 0) return Object.entries(customAllocations).reduce((s, [id, pct]) => s + PROTOCOLS.find(x => x.id === parseInt(id)).apy * pct / totalPct, 0);
+    return 0;
+  }, [selectedStrategy, customAllocations, totalPct]);
+
+  const enterApp = () => { setPage("app"); window.scrollTo(0, 0); };
+
+  const css = `
+    @keyframes floatP { 0%,100%{transform:translateY(0) translateX(0)} 25%{transform:translateY(-30px) translateX(10px)} 50%{transform:translateY(-10px) translateX(-15px)} 75%{transform:translateY(-40px) translateX(5px)} }
+    @keyframes pulseG { 0%,100%{box-shadow:0 0 30px rgba(247,147,26,0.2),0 0 60px rgba(247,147,26,0.1)} 50%{box-shadow:0 0 50px rgba(247,147,26,0.4),0 0 100px rgba(247,147,26,0.15)} }
+    @keyframes slideU { from{opacity:0;transform:translateY(40px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes slideD { from{opacity:0;transform:translateY(-20px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes ticker { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+    @keyframes borderP { 0%,100%{border-color:rgba(247,147,26,0.12)} 50%{border-color:rgba(247,147,26,0.35)} }
+    body{margin:0;padding:0} *{box-sizing:border-box} ::selection{background:rgba(247,147,26,0.3);color:#fff}
+    input[type="range"]{-webkit-appearance:none;height:4px;border-radius:2px;background:#1E1F2A;outline:none}
+    input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;cursor:pointer;background:#F7931A}
+  `;
+
+  const fonts = <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />;
+
+  /* ════════════════════════════════ HOME ════════════════════════════════ */
+  if (page === "home") return (
+    <div style={{ minHeight: "100vh", background: "#06070B", color: "#E4E4E7", fontFamily: "'JetBrains Mono', monospace", position: "relative", overflow: "hidden" }}>
+      <style>{css}</style>{fonts}
+
+      {/* BG */}
+      <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none" }}>
+        <div style={{ position: "absolute", top: "-20%", left: "50%", transform: "translateX(-50%)", width: 1000, height: 1000, background: "radial-gradient(ellipse, rgba(247,147,26,0.07) 0%, rgba(247,147,26,0.02) 40%, transparent 70%)", borderRadius: "50%", filter: "blur(60px)" }} />
+        <div style={{ position: "absolute", bottom: "-10%", left: "10%", width: 600, height: 600, background: "radial-gradient(circle, rgba(110,231,183,0.04) 0%, transparent 65%)", borderRadius: "50%", filter: "blur(80px)" }} />
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(247,147,26,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(247,147,26,0.025) 1px, transparent 1px)", backgroundSize: "80px 80px", transform: `translateY(${scrollY * 0.1}px)` }} />
+        <Particles />
+      </div>
+
+      {/* NAV */}
+      <nav style={{
+        position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, padding: "16px 40px",
+        background: scrollY > 50 ? "rgba(6,7,11,0.92)" : "transparent",
+        backdropFilter: scrollY > 50 ? "blur(20px)" : "none",
+        borderBottom: scrollY > 50 ? "1px solid rgba(247,147,26,0.08)" : "1px solid transparent",
+        transition: "all 0.3s", display: "flex", alignItems: "center", justifyContent: "space-between",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 34, height: 34, borderRadius: 8, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, fontWeight: 800, color: "#06070B", boxShadow: "0 0 16px rgba(247,147,26,0.3)" }}>Y</div>
+          <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 16, color: "#F7F7F8", letterSpacing: "-0.02em" }}>yields<span style={{ color: "#F7931A" }}>on</span>bitcoin</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
+          {["How it Works:how", "Protocols:protocols", "Strategies:strategies"].map(l => { const [label, id] = l.split(":"); return (
+            <a key={id} href={`#${id}`} style={{ color: "#71717A", fontSize: 13, fontFamily: "'DM Sans', sans-serif", textDecoration: "none", fontWeight: 500 }}
+              onMouseEnter={e => e.target.style.color = "#E4E4E7"} onMouseLeave={e => e.target.style.color = "#71717A"}>{label}</a>
+          ); })}
+          <button onClick={enterApp} style={{
+            padding: "9px 22px", borderRadius: 8, border: "1px solid #F7931A",
+            background: "linear-gradient(135deg, rgba(247,147,26,0.15), rgba(247,147,26,0.05))",
+            color: "#F7931A", fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer",
+          }} onMouseEnter={e => { e.target.style.background = "linear-gradient(135deg, #F7931A, #E8850F)"; e.target.style.color = "#06070B"; }} onMouseLeave={e => { e.target.style.background = "linear-gradient(135deg, rgba(247,147,26,0.15), rgba(247,147,26,0.05))"; e.target.style.color = "#F7931A"; }}>Launch App</button>
+        </div>
+      </nav>
+
+      {/* ═══ HERO ═══ */}
+      <section style={{ position: "relative", zIndex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "120px 40px 80px", textAlign: "center" }}>
+        {/* Orbit rings */}
+        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 520, height: 520, border: "1px solid rgba(247,147,26,0.05)", borderRadius: "50%", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 720, height: 720, border: "1px solid rgba(247,147,26,0.025)", borderRadius: "50%", pointerEvents: "none" }} />
+
+        {/* Live badge */}
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 16px 6px 8px", borderRadius: 100, background: "rgba(247,147,26,0.08)", border: "1px solid rgba(247,147,26,0.15)", marginBottom: 36, opacity: aIn ? 1 : 0, animation: aIn ? "slideD 0.6s ease forwards" : "none" }}>
+          <span style={{ padding: "2px 8px", borderRadius: 100, background: "#F7931A", color: "#06070B", fontSize: 10, fontWeight: 700, letterSpacing: "0.05em" }}>LIVE</span>
+          <span style={{ fontSize: 12, color: "#F7931A", fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>{stats.count} protocols · ${(stats.totalTVL / 1000).toFixed(1)}B TVL tracked</span>
+        </div>
+
+        {/* Headline */}
+        <h1 style={{
+          fontFamily: "'Sora', sans-serif", fontSize: "clamp(52px, 7.5vw, 92px)", fontWeight: 800, lineHeight: 1.02, letterSpacing: "-0.045em", color: "#F7F7F8", margin: "0 0 8px 0", maxWidth: 880,
+          opacity: aIn ? 1 : 0, animation: aIn ? "slideU 0.8s cubic-bezier(0.22,1,0.36,1) 0.15s both" : "none",
+        }}>
+          Best Yields<br />
+          <span style={{ background: "linear-gradient(135deg, #F7931A 0%, #FBBF24 50%, #F7931A 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundSize: "200% auto" }}>on Bitcoin</span>
+        </h1>
+
+        {/* Sub */}
+        <p style={{
+          fontFamily: "'DM Sans', sans-serif", fontSize: "clamp(16px, 2vw, 20px)", color: "#71717A", maxWidth: 540, lineHeight: 1.65, margin: "24px 0 44px", fontWeight: 400,
+          opacity: aIn ? 1 : 0, animation: aIn ? "slideU 0.8s cubic-bezier(0.22,1,0.36,1) 0.35s both" : "none",
+        }}>
+          Compare every BTC yield protocol in one place. Build a strategy. Allocate with a single click.
+        </p>
+
+        {/* CTAs */}
+        <div style={{ display: "flex", gap: 14, alignItems: "center", opacity: aIn ? 1 : 0, animation: aIn ? "slideU 0.8s cubic-bezier(0.22,1,0.36,1) 0.5s both" : "none" }}>
+          <button onClick={enterApp} style={{
+            padding: "18px 44px", borderRadius: 12, border: "none", cursor: "pointer",
+            background: "linear-gradient(135deg, #F7931A, #E8850F)", color: "#06070B",
+            fontFamily: "'Sora', sans-serif", fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em",
+            boxShadow: "0 4px 30px rgba(247,147,26,0.35), 0 0 60px rgba(247,147,26,0.15)",
+            animation: "pulseG 3s ease-in-out infinite", transition: "transform 0.2s",
+          }} onMouseEnter={e => e.target.style.transform = "translateY(-2px) scale(1.02)"} onMouseLeave={e => e.target.style.transform = "none"}>
+            Build Your Strategy →
+          </button>
+          <button onClick={() => document.getElementById("how")?.scrollIntoView({ behavior: "smooth" })} style={{
+            padding: "18px 36px", borderRadius: 12, border: "1px solid #27272A",
+            background: "rgba(255,255,255,0.03)", color: "#A1A1AA",
+            fontFamily: "'Sora', sans-serif", fontSize: 16, fontWeight: 500, cursor: "pointer",
+            backdropFilter: "blur(10px)", transition: "all 0.2s",
+          }} onMouseEnter={e => { e.target.style.borderColor = "#52525B"; e.target.style.color = "#E4E4E7"; }} onMouseLeave={e => { e.target.style.borderColor = "#27272A"; e.target.style.color = "#A1A1AA"; }}>
+            Learn More
+          </button>
+        </div>
+
+        {/* Scroll hint */}
+        <div style={{ position: "absolute", bottom: 36, left: "50%", transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, opacity: scrollY > 100 ? 0 : 0.35, transition: "opacity 0.3s" }}>
+          <div style={{ fontSize: 10, color: "#52525B", letterSpacing: "0.12em", textTransform: "uppercase" }}>Scroll</div>
+          <div style={{ width: 1, height: 28, background: "linear-gradient(to bottom, #52525B, transparent)" }} />
+        </div>
+      </section>
+
+      {/* ═══ TICKER ═══ */}
+      <section style={{ position: "relative", zIndex: 1, padding: "18px 0", overflow: "hidden", borderTop: "1px solid rgba(247,147,26,0.06)", borderBottom: "1px solid rgba(247,147,26,0.06)", background: "rgba(8,9,14,0.5)" }}>
+        <div style={{ display: "flex", whiteSpace: "nowrap", animation: "ticker 40s linear infinite" }}>
+          {[...PROTOCOLS, ...PROTOCOLS].map((p, i) => (
+            <div key={i} style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "0 30px", flexShrink: 0 }}>
+              <span style={{ color: p.color, fontSize: 15 }}>{p.logo}</span>
+              <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: 13, color: "#A1A1AA" }}>{p.name}</span>
+              <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 13, color: "#4ADE80" }}>{p.apy}%</span>
+              <span style={{ color: "#1E1F2A" }}>│</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══ HOW IT WORKS ═══ */}
+      <section id="how" style={{ position: "relative", zIndex: 1, padding: "120px 40px", maxWidth: 1200, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 64 }}>
+          <div style={{ fontSize: 11, color: "#F7931A", textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 12, fontWeight: 600 }}>How it Works</div>
+          <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: 42, fontWeight: 800, color: "#F7F7F8", margin: 0, letterSpacing: "-0.03em" }}>Three steps to earning yield</h2>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
+          {[
+            { s: "01", t: "Compare", d: "Every BTC yield protocol aggregated in real-time. Filter by APY, risk, chain, lockup. No more hopping between dashboards.", i: "⌕", dt: `${stats.count}+ protocols tracked` },
+            { s: "02", t: "Strategize", d: "Choose a pre-built strategy or create your own. Drag sliders to allocate. Blended APY calculates in real-time.", i: "◈", dt: "3 preset strategies" },
+            { s: "03", t: "Allocate", d: "Review your positions, estimated yields, risk assessment. Deploy across all selected protocols in a single transaction.", i: "⚡", dt: "One-click deploy" },
+          ].map((item, i) => (
+            <div key={i} style={{ padding: 32, borderRadius: 16, background: "linear-gradient(160deg, #0D0E14, #111218)", border: "1px solid #1A1B25", position: "relative", overflow: "hidden", transition: "all 0.3s" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(247,147,26,0.2)"; e.currentTarget.style.transform = "translateY(-4px)"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#1A1B25"; e.currentTarget.style.transform = "none"; }}>
+              <div style={{ position: "absolute", top: -8, right: 16, fontFamily: "'Sora', sans-serif", fontSize: 80, fontWeight: 800, color: "rgba(247,147,26,0.04)", lineHeight: 1, pointerEvents: "none" }}>{item.s}</div>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: "rgba(247,147,26,0.08)", border: "1px solid rgba(247,147,26,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, color: "#F7931A", marginBottom: 20 }}>{item.i}</div>
+              <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: 22, fontWeight: 700, color: "#F7F7F8", margin: "0 0 12px 0", letterSpacing: "-0.02em" }}>{item.t}</h3>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "#71717A", lineHeight: 1.7, margin: "0 0 20px 0" }}>{item.d}</p>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 12px", borderRadius: 6, background: "rgba(247,147,26,0.06)", border: "1px solid rgba(247,147,26,0.1)", fontSize: 11, color: "#F7931A", fontWeight: 600 }}>{item.dt}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══ LIVE YIELDS TABLE ═══ */}
+      <section id="protocols" style={{ position: "relative", zIndex: 1, padding: "80px 40px 120px", maxWidth: 1200, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 56 }}>
+          <div style={{ fontSize: 11, color: "#F7931A", textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 12, fontWeight: 600 }}>Live Yields</div>
+          <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: 42, fontWeight: 800, color: "#F7F7F8", margin: "0 0 12px 0", letterSpacing: "-0.03em" }}>What your Bitcoin could earn</h2>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, color: "#52525B", margin: 0 }}>Real-time APY from {stats.count} protocols. Updated every 15 minutes.</p>
+        </div>
+        <div style={{ borderRadius: 16, overflow: "hidden", background: "linear-gradient(160deg, #0D0E14, #111218)", border: "1px solid #1A1B25" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead><tr>{["Protocol", "Category", "APY", "30d Trend", "TVL", "Risk", "Lockup"].map(h => (
+              <th key={h} style={{ textAlign: "left", padding: "16px 20px", fontSize: 10, color: "#52525B", textTransform: "uppercase", letterSpacing: "0.12em", borderBottom: "1px solid #1A1B25", fontWeight: 600 }}>{h}</th>
+            ))}</tr></thead>
+            <tbody>{PROTOCOLS.slice(0, 8).map((p, i) => (
+              <tr key={p.id} style={{ borderBottom: i < 7 ? "1px solid rgba(26,27,37,0.6)" : "none", transition: "background 0.2s" }}
+                onMouseEnter={e => e.currentTarget.style.background = "rgba(247,147,26,0.02)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                <td style={{ padding: "16px 20px" }}><div style={{ display: "flex", alignItems: "center", gap: 10 }}><div style={{ width: 34, height: 34, borderRadius: 8, background: `${p.color}12`, border: `1px solid ${p.color}25`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: p.color }}>{p.logo}</div><span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: 14, color: "#F7F7F8" }}>{p.name}</span></div></td>
+                <td style={{ padding: "16px 20px", fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#71717A" }}>{p.category}</td>
+                <td style={{ padding: "16px 20px" }}><span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 16, color: "#4ADE80" }}>{p.apy}%</span></td>
+                <td style={{ padding: "16px 20px" }}><MiniSparkline data={p.trend} color={p.color} width={72} height={24} /></td>
+                <td style={{ padding: "16px 20px", fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#A1A1AA" }}>{formatTVL(p.tvl)}</td>
+                <td style={{ padding: "16px 20px" }}><RiskBadge risk={p.risk} /></td>
+                <td style={{ padding: "16px 20px", fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#71717A" }}>{p.lockup}</td>
+              </tr>))}</tbody>
+          </table>
+          <div style={{ padding: "16px 20px", textAlign: "center", borderTop: "1px solid #1A1B25" }}>
+            <button onClick={enterApp} style={{ background: "none", border: "none", color: "#F7931A", fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+              onMouseEnter={e => e.target.style.textDecoration = "underline"} onMouseLeave={e => e.target.style.textDecoration = "none"}>View all {stats.count} protocols →</button>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ STRATEGIES ═══ */}
+      <section id="strategies" style={{ position: "relative", zIndex: 1, padding: "80px 40px 120px", maxWidth: 1200, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 56 }}>
+          <div style={{ fontSize: 11, color: "#F7931A", textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 12, fontWeight: 600 }}>Strategies</div>
+          <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: 42, fontWeight: 800, color: "#F7F7F8", margin: "0 0 12px 0", letterSpacing: "-0.03em" }}>Pick your risk. Deploy in seconds.</h2>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
+          {STRATEGIES.map((st, i) => (
+            <div key={i} style={{ padding: 28, borderRadius: 16, background: "linear-gradient(160deg, #0D0E14, #111218)", border: "1px solid #1A1B25", transition: "all 0.3s" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(247,147,26,0.2)"; e.currentTarget.style.transform = "translateY(-4px)"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#1A1B25"; e.currentTarget.style.transform = "none"; }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+                <div><div style={{ fontSize: 32, marginBottom: 8 }}>{st.icon}</div><div style={{ fontFamily: "'Sora', sans-serif", fontSize: 20, fontWeight: 700, color: "#F7F7F8" }}>{st.name}</div></div>
+                <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 32, fontWeight: 800, color: "#4ADE80", letterSpacing: "-0.03em" }}>{st.expectedApy}%</div>
+              </div>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#71717A", lineHeight: 1.6, margin: "0 0 18px 0" }}>{st.description}</p>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}><RiskBadge risk={st.riskLevel} /><span style={{ fontSize: 11, color: "#52525B" }}>{st.allocations.length} protocols</span></div>
+              <div style={{ display: "flex", height: 6, borderRadius: 3, overflow: "hidden", gap: 2 }}>
+                {st.allocations.map(a => { const pr = PROTOCOLS.find(x => x.id === a.id); return <div key={a.id} style={{ width: `${a.pct}%`, height: "100%", background: pr.color, borderRadius: 2, opacity: 0.7 }} />; })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══ CTA ═══ */}
+      <section style={{ position: "relative", zIndex: 1, padding: "100px 40px 120px", textAlign: "center" }}>
+        <div style={{ maxWidth: 700, margin: "0 auto", padding: "64px 48px", borderRadius: 24, background: "linear-gradient(160deg, rgba(247,147,26,0.06), rgba(247,147,26,0.02), transparent)", border: "1px solid rgba(247,147,26,0.12)", animation: "borderP 4s ease-in-out infinite" }}>
+          <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: 38, fontWeight: 800, color: "#F7F7F8", margin: "0 0 14px 0", letterSpacing: "-0.03em" }}>Stop leaving yield on the table</h2>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 17, color: "#71717A", margin: "0 0 36px 0", lineHeight: 1.6 }}>Your Bitcoin is sitting idle. Put it to work across the best protocols — with the risk level you choose.</p>
+          <button onClick={enterApp} style={{
+            padding: "18px 48px", borderRadius: 12, border: "none", cursor: "pointer",
+            background: "linear-gradient(135deg, #F7931A, #E8850F)", color: "#06070B",
+            fontFamily: "'Sora', sans-serif", fontSize: 18, fontWeight: 700,
+            boxShadow: "0 4px 30px rgba(247,147,26,0.35)", transition: "transform 0.2s",
+          }} onMouseEnter={e => e.target.style.transform = "translateY(-2px) scale(1.02)"} onMouseLeave={e => e.target.style.transform = "none"}>Build Your Strategy →</button>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer style={{ position: "relative", zIndex: 1, padding: "28px 40px", borderTop: "1px solid rgba(247,147,26,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 22, height: 22, borderRadius: 5, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: "#06070B" }}>Y</div>
+          <span style={{ fontSize: 11, color: "#3F3F46" }}>© 2026 yieldsonbitcoin.com</span>
+        </div>
+        <div style={{ display: "flex", gap: 24, fontSize: 12 }}>
+          {["Docs", "API", "Twitter", "Discord"].map(l => <span key={l} style={{ color: "#52525B", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }} onMouseEnter={e => e.target.style.color = "#A1A1AA"} onMouseLeave={e => e.target.style.color = "#52525B"}>{l}</span>)}
+        </div>
+      </footer>
+    </div>
+  );
+
+  /* ════════════════════════════════ APP DASHBOARD ════════════════════════════════ */
+  return (
+    <div style={{ minHeight: "100vh", background: "#08090E", color: "#E4E4E7", fontFamily: "'JetBrains Mono', monospace", position: "relative", overflow: "hidden" }}>
+      <style>{css}</style>{fonts}
+      <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none" }}>
+        <div style={{ position: "absolute", top: -200, right: -200, width: 600, height: 600, background: "radial-gradient(circle, rgba(247,147,26,0.06) 0%, transparent 70%)", borderRadius: "50%", filter: "blur(80px)" }} />
+        <div style={{ position: "absolute", bottom: -200, left: -100, width: 500, height: 500, background: "radial-gradient(circle, rgba(110,231,183,0.04) 0%, transparent 70%)", borderRadius: "50%", filter: "blur(80px)" }} />
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(247,147,26,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(247,147,26,0.03) 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
+      </div>
+
+      <div style={{ position: "relative", zIndex: 1, maxWidth: 1320, margin: "0 auto", padding: "0 24px" }}>
+        {/* Header */}
+        <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 0", borderBottom: "1px solid rgba(247,147,26,0.12)", opacity: aIn ? 1 : 0, transform: aIn ? "translateY(0)" : "translateY(-10px)", transition: "all 0.6s cubic-bezier(0.22,1,0.36,1)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, cursor: "pointer" }} onClick={() => setPage("home")}>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 700, color: "#08090E", boxShadow: "0 0 20px rgba(247,147,26,0.3)" }}>Y</div>
+            <div><div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 17, color: "#F7F7F8", letterSpacing: "-0.02em" }}>yields<span style={{ color: "#F7931A" }}>on</span>bitcoin</div><div style={{ fontSize: 10, color: "#71717A", letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 1 }}>Every BTC yield. One dashboard.</div></div>
+          </div>
+          <nav style={{ display: "flex", gap: 2, background: "#111218", borderRadius: 8, padding: 3, border: "1px solid #1E1F2A" }}>
+            {[["explore", "Explore"], ["strategy", "Strategy"], ["allocate", "Allocate"]].map(([k, l]) => (
+              <button key={k} onClick={() => setView(k)} style={{ padding: "8px 20px", borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 500, background: view === k ? "rgba(247,147,26,0.12)" : "transparent", color: view === k ? "#F7931A" : "#71717A", transition: "all 0.2s" }}>{l}</button>
+            ))}
+          </nav>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, background: "#111218", border: "1px solid #1E1F2A", fontSize: 12, color: "#A1A1AA" }}><span style={{ color: "#F7931A", fontSize: 14 }}>₿</span><span style={{ color: "#F7F7F8", fontWeight: 600 }}>${btcPrice.toLocaleString()}</span></div>
+            <button style={{ padding: "8px 20px", borderRadius: 8, border: "1px solid #F7931A", background: "linear-gradient(135deg, rgba(247,147,26,0.15), rgba(247,147,26,0.05))", color: "#F7931A", fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Connect Wallet</button>
+          </div>
+        </header>
+
+        {/* Stats */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, padding: "24px 0", opacity: aIn ? 1 : 0, transition: "all 0.6s cubic-bezier(0.22,1,0.36,1) 0.1s" }}>
+          {[
+            { l: "Total Value Locked", v: formatTVL(stats.totalTVL), s: "across all protocols" },
+            { l: "Average APY", v: `${stats.avgApy.toFixed(1)}%`, s: "weighted by TVL" },
+            { l: "Highest Yield", v: `${stats.maxApy.toFixed(1)}%`, s: "Ethena sBTC", a: true },
+            { l: "Protocols Tracked", v: stats.count.toString(), s: "and growing" },
+          ].map((st, i) => (
+            <div key={i} style={{ padding: "18px 20px", borderRadius: 10, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
+              <div style={{ fontSize: 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>{st.l}</div>
+              <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 26, fontWeight: 700, color: st.a ? "#F7931A" : "#F7F7F8", letterSpacing: "-0.02em" }}>{st.v}</div>
+              <div style={{ fontSize: 11, color: "#52525B", marginTop: 2 }}>{st.s}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* ═══ EXPLORE ═══ */}
+        {view === "explore" && (
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+              <div style={{ position: "relative", flex: "1 1 240px", maxWidth: 320 }}>
+                <input type="text" placeholder="Search protocols..." value={search} onChange={e => setSearch(e.target.value)} style={{ width: "100%", padding: "10px 14px 10px 36px", borderRadius: 8, border: "1px solid #1E1F2A", background: "#111218", color: "#E4E4E7", fontSize: 13, fontFamily: "inherit", outline: "none" }} onFocus={e => e.target.style.borderColor = "#F7931A40"} onBlur={e => e.target.style.borderColor = "#1E1F2A"} />
+                <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#52525B", fontSize: 14 }}>⌕</span>
+              </div>
+              {[[category, setCategory, CATEGORIES, "All Categories", 140], [riskFilter, setRiskFilter, RISK_LEVELS, "All Risk", 110]].map(([v, sv, opts, all, w], i) => (
+                <select key={i} value={v} onChange={e => sv(e.target.value)} style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid #1E1F2A", background: "#111218", color: "#A1A1AA", fontSize: 12, fontFamily: "inherit", cursor: "pointer", outline: "none", minWidth: w }}>
+                  {opts.map(o => <option key={o} value={o}>{o === "All" ? all : o === "Low" || o === "Medium" || o === "High" ? `${o} Risk` : o}</option>)}
+                </select>
+              ))}
+              <select value={sort} onChange={e => setSort(e.target.value)} style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid #1E1F2A", background: "#111218", color: "#A1A1AA", fontSize: 12, fontFamily: "inherit", cursor: "pointer", outline: "none", minWidth: 140 }}>
+                {SORT_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+              </select>
+              {selectedProtocols.length >= 2 && <button onClick={() => setComparing(!comparing)} style={{ padding: "10px 18px", borderRadius: 8, border: comparing ? "1px solid #F7931A" : "1px solid #F7931A50", background: comparing ? "rgba(247,147,26,0.12)" : "transparent", color: "#F7931A", fontSize: 12, fontWeight: 600, fontFamily: "'Sora', sans-serif", cursor: "pointer" }}>{comparing ? "✕ Close" : `Compare (${selectedProtocols.length})`}</button>}
+            </div>
+
+            {comparing && selectedProtocols.length >= 2 && (
+              <div style={{ marginBottom: 24, padding: 24, borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #F7931A20" }}>
+                <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: 16, fontWeight: 600, color: "#F7F7F8", marginBottom: 16, marginTop: 0 }}>Protocol Comparison</h3>
+                <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <thead><tr>{["Protocol", "Category", "APY", "Range", "TVL", "Risk", "Chain", "Lock", "Audits"].map(h => <th key={h} style={{ textAlign: "left", padding: "10px 14px", color: "#71717A", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", borderBottom: "1px solid #1E1F2A", whiteSpace: "nowrap" }}>{h}</th>)}</tr></thead>
+                  <tbody>{selectedProtocols.map(id => { const p = PROTOCOLS.find(x => x.id === id); return (<tr key={id}><td style={{ padding: "12px 14px", fontWeight: 600, color: "#F7F7F8" }}><span style={{ color: p.color, marginRight: 8 }}>{p.logo}</span>{p.name}</td><td style={{ padding: "12px 14px", color: "#A1A1AA" }}>{p.category}</td><td style={{ padding: "12px 14px", color: "#4ADE80", fontWeight: 700, fontFamily: "'Sora'" }}>{p.apy}%</td><td style={{ padding: "12px 14px", color: "#71717A" }}>{p.apyRange[0]}–{p.apyRange[1]}%</td><td style={{ padding: "12px 14px", color: "#A1A1AA" }}>{formatTVL(p.tvl)}</td><td style={{ padding: "12px 14px" }}><RiskBadge risk={p.risk} /></td><td style={{ padding: "12px 14px", color: "#A1A1AA" }}>{p.chain}</td><td style={{ padding: "12px 14px", color: "#A1A1AA" }}>{p.lockup}</td><td style={{ padding: "12px 14px", color: "#A1A1AA" }}>{p.audits}</td></tr>); })}</tbody>
+                </table></div>
+              </div>
+            )}
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))", gap: 14 }}>
+              {filteredProtocols.map(p => (
+                <div key={p.id} onMouseEnter={() => setHProt(p.id)} onMouseLeave={() => setHProt(null)} onClick={() => setXProt(xProt === p.id ? null : p.id)}
+                  style={{ padding: 20, borderRadius: 12, cursor: "pointer", background: selectedProtocols.includes(p.id) ? "linear-gradient(135deg, rgba(247,147,26,0.08), #111218)" : hProt === p.id ? "linear-gradient(135deg, #151620, #111218)" : "linear-gradient(135deg, #111218, #0D0E14)", border: selectedProtocols.includes(p.id) ? "1px solid #F7931A40" : "1px solid #1E1F2A", transition: "all 0.25s", transform: hProt === p.id ? "translateY(-2px)" : "none", boxShadow: hProt === p.id ? `0 8px 32px ${p.color}10` : "none" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 10, background: `${p.color}15`, border: `1px solid ${p.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, color: p.color }}>{p.logo}</div>
+                      <div><div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: 15, color: "#F7F7F8" }}>{p.name}</div><div style={{ fontSize: 11, color: "#71717A", marginTop: 2 }}>{p.category} · {p.chain}</div></div>
+                    </div>
+                    <div style={{ textAlign: "right" }}><div style={{ fontFamily: "'Sora', sans-serif", fontSize: 24, fontWeight: 700, color: "#4ADE80", letterSpacing: "-0.02em", lineHeight: 1 }}>{p.apy}%</div><div style={{ fontSize: 10, color: "#52525B", marginTop: 2 }}>APY</div></div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                    <div style={{ display: "flex", gap: 16 }}>
+                      {[["TVL", formatTVL(p.tvl)], ["Lock", p.lockup]].map(([l, v]) => <div key={l}><div style={{ fontSize: 10, color: "#52525B", textTransform: "uppercase", letterSpacing: "0.08em" }}>{l}</div><div style={{ fontSize: 13, color: "#A1A1AA", fontWeight: 500, marginTop: 2 }}>{v}</div></div>)}
+                      <div><div style={{ fontSize: 10, color: "#52525B", textTransform: "uppercase", letterSpacing: "0.08em" }}>Risk</div><div style={{ marginTop: 2 }}><RiskBadge risk={p.risk} /></div></div>
+                    </div>
+                    <MiniSparkline data={p.trend} color={p.color} />
+                  </div>
+                  {xProt === p.id && (
+                    <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${p.color}20` }}>
+                      <p style={{ fontSize: 12, color: "#A1A1AA", lineHeight: 1.6, margin: "0 0 14px 0" }}>{p.description}</p>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
+                        <div style={{ fontSize: 11, color: "#52525B" }}>Range: {p.apyRange[0]}–{p.apyRange[1]}% · {p.audits} audits · Min: {p.minDeposit} BTC</div>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button onClick={e => { e.stopPropagation(); toggleP(p.id); }} style={{ padding: "6px 14px", borderRadius: 6, fontSize: 11, fontWeight: 600, fontFamily: "'Sora'", cursor: "pointer", border: "none", background: selectedProtocols.includes(p.id) ? "#F7931A20" : "#1E1F2A", color: selectedProtocols.includes(p.id) ? "#F7931A" : "#A1A1AA" }}>{selectedProtocols.includes(p.id) ? "✓ Selected" : "+ Compare"}</button>
+                          <button onClick={e => { e.stopPropagation(); setCustomAllocations(pr => ({ ...pr, [p.id]: pr[p.id] || 25 })); setView("allocate"); }} style={{ padding: "6px 14px", borderRadius: 6, fontSize: 11, fontWeight: 600, fontFamily: "'Sora'", cursor: "pointer", border: "1px solid #F7931A50", background: "rgba(247,147,26,0.08)", color: "#F7931A" }}>Allocate →</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            {filteredProtocols.length === 0 && <div style={{ textAlign: "center", padding: "60px 20px", color: "#52525B" }}><div style={{ fontSize: 32, marginBottom: 12 }}>∅</div><div style={{ fontFamily: "'Sora'", fontSize: 16, fontWeight: 500 }}>No protocols match</div></div>}
+          </div>
+        )}
+
+        {/* ═══ STRATEGY ═══ */}
+        {view === "strategy" && (
+          <div>
+            <div style={{ marginBottom: 28 }}><h2 style={{ fontFamily: "'Sora'", fontSize: 22, fontWeight: 700, color: "#F7F7F8", margin: "0 0 6px 0" }}>Strategy Builder</h2><p style={{ fontSize: 13, color: "#71717A", margin: 0 }}>Pre-built strategies or build your own.</p></div>
+            <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 28, padding: 20, borderRadius: 12, background: "#111218", border: "1px solid #1E1F2A" }}>
+              <div style={{ fontSize: 11, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.08em" }}>Your BTC</div>
+              <input type="text" value={btcAmount} onChange={e => setBtcAmount(e.target.value)} style={{ flex: 1, padding: "10px 14px", borderRadius: 8, border: "1px solid #1E1F2A", background: "#08090E", color: "#F7F7F8", fontSize: 22, fontFamily: "'Sora'", fontWeight: 700, outline: "none" }} />
+              <div style={{ fontSize: 13, color: "#52525B" }}>≈ ${(parseFloat(btcAmount || 0) * btcPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 32 }}>
+              {STRATEGIES.map((st, i) => { const sel = selectedStrategy?.name === st.name; const ay = parseFloat(btcAmount || 0) * st.expectedApy / 100; return (
+                <div key={i} onClick={() => { setSelectedStrategy(sel ? null : st); setCustomAllocations({}); }} style={{ padding: 24, borderRadius: 12, cursor: "pointer", background: sel ? "linear-gradient(135deg, rgba(247,147,26,0.08), #111218)" : "linear-gradient(135deg, #111218, #0D0E14)", border: sel ? "1px solid #F7931A50" : "1px solid #1E1F2A", transition: "all 0.25s" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                    <div><div style={{ fontSize: 28, marginBottom: 8 }}>{st.icon}</div><div style={{ fontFamily: "'Sora'", fontSize: 18, fontWeight: 700, color: "#F7F7F8" }}>{st.name}</div></div>
+                    <div style={{ fontFamily: "'Sora'", fontSize: 28, fontWeight: 700, color: "#4ADE80" }}>{st.expectedApy}%</div>
+                  </div>
+                  <p style={{ fontSize: 12, color: "#71717A", lineHeight: 1.5, margin: "0 0 16px 0" }}>{st.description}</p>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}><RiskBadge risk={st.riskLevel} /><div style={{ fontSize: 11, color: "#52525B" }}>Est: <span style={{ color: "#4ADE80", fontWeight: 600 }}>{ay.toFixed(4)} BTC/yr</span></div></div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>{st.allocations.map(a => { const pr = PROTOCOLS.find(x => x.id === a.id); return (<div key={a.id} style={{ display: "flex", alignItems: "center", gap: 8 }}><div style={{ width: 90, fontSize: 11, color: "#A1A1AA", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><span style={{ color: pr.color }}>{pr.logo}</span> {pr.name}</div><div style={{ flex: 1, height: 6, borderRadius: 3, background: "#1E1F2A", overflow: "hidden" }}><div style={{ width: `${a.pct}%`, height: "100%", borderRadius: 3, background: `linear-gradient(90deg, ${pr.color}80, ${pr.color})` }} /></div><div style={{ width: 36, fontSize: 11, color: "#71717A", textAlign: "right" }}>{a.pct}%</div></div>); })}</div>
+                  {sel && <button onClick={e => { e.stopPropagation(); setView("allocate"); }} style={{ width: "100%", marginTop: 16, padding: 12, borderRadius: 8, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #F7931A, #E8850F)", color: "#08090E", fontFamily: "'Sora'", fontSize: 14, fontWeight: 700, boxShadow: "0 4px 20px rgba(247,147,26,0.3)" }}>Deploy Strategy →</button>}
+                </div>); })}
+            </div>
+            {/* Custom */}
+            <div style={{ padding: 24, borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                <div><h3 style={{ fontFamily: "'Sora'", fontSize: 16, fontWeight: 600, color: "#F7F7F8", margin: "0 0 4px 0" }}>Custom Strategy</h3><p style={{ fontSize: 12, color: "#71717A", margin: 0 }}>Mix and match. Drag sliders to allocate.</p></div>
+                {Object.keys(customAllocations).length > 0 && <div style={{ textAlign: "right" }}><div style={{ fontSize: 10, color: "#52525B", textTransform: "uppercase", letterSpacing: "0.08em" }}>Blended APY</div><div style={{ fontFamily: "'Sora'", fontSize: 24, fontWeight: 700, color: "#4ADE80" }}>{wApy.toFixed(1)}%</div></div>}
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
+                {PROTOCOLS.map(p => { const added = customAllocations[p.id] !== undefined; return (
+                  <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 8, background: added ? `${p.color}08` : "#08090E", border: added ? `1px solid ${p.color}25` : "1px solid #1E1F2A" }}>
+                    <span style={{ color: p.color, fontSize: 16 }}>{p.logo}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12, fontWeight: 600, color: "#E4E4E7", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div><div style={{ fontSize: 10, color: "#52525B" }}>{p.apy}% APY</div></div>
+                    {added ? <div style={{ display: "flex", alignItems: "center", gap: 8 }}><input type="range" min={5} max={100} step={5} value={customAllocations[p.id]} onClick={e => e.stopPropagation()} onChange={e => { setSelectedStrategy(null); setCustomAllocations(pr => ({ ...pr, [p.id]: parseInt(e.target.value) })); }} style={{ width: 60, accentColor: p.color }} /><span style={{ fontSize: 11, color: p.color, fontWeight: 600, width: 32, textAlign: "right" }}>{customAllocations[p.id]}%</span><button onClick={() => setCustomAllocations(pr => { const n = { ...pr }; delete n[p.id]; return n; })} style={{ background: "none", border: "none", color: "#52525B", cursor: "pointer", fontSize: 14, padding: "0 4px" }}>×</button></div>
+                      : <button onClick={() => { setSelectedStrategy(null); setCustomAllocations(pr => ({ ...pr, [p.id]: 25 })); }} style={{ padding: "4px 10px", borderRadius: 4, border: "1px solid #1E1F2A", background: "transparent", color: "#71717A", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>+ Add</button>}
+                  </div>); })}
+              </div>
+              {Object.keys(customAllocations).length > 0 && <div style={{ marginTop: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}><div style={{ fontSize: 12, color: totalPct === 100 ? "#4ADE80" : "#FBBF24" }}>Total: {totalPct}% {totalPct !== 100 && "(normalized)"}</div><button onClick={() => setView("allocate")} style={{ padding: "12px 28px", borderRadius: 8, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #F7931A, #E8850F)", color: "#08090E", fontFamily: "'Sora'", fontSize: 14, fontWeight: 700, boxShadow: "0 4px 20px rgba(247,147,26,0.3)" }}>Deploy Custom →</button></div>}
+            </div>
+          </div>
+        )}
+
+        {/* ═══ ALLOCATE ═══ */}
+        {view === "allocate" && (
+          <div>
+            <div style={{ marginBottom: 28 }}><h2 style={{ fontFamily: "'Sora'", fontSize: 22, fontWeight: 700, color: "#F7F7F8", margin: "0 0 6px 0" }}>Allocate Your Bitcoin</h2><p style={{ fontSize: 13, color: "#71717A", margin: 0 }}>Review and deploy with a single transaction.</p></div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 24 }}>
+              <div>
+                <div style={{ padding: 24, borderRadius: 12, marginBottom: 16, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
+                  <div style={{ fontSize: 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>Amount</div>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}><input type="text" value={btcAmount} onChange={e => setBtcAmount(e.target.value)} style={{ padding: "8px 0", border: "none", background: "transparent", color: "#F7F7F8", fontSize: 36, fontFamily: "'Sora'", fontWeight: 700, outline: "none", width: 180 }} /><span style={{ fontSize: 18, color: "#F7931A", fontWeight: 600 }}>BTC</span><span style={{ fontSize: 14, color: "#52525B" }}>≈ ${(parseFloat(btcAmount || 0) * btcPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></div>
+                </div>
+                <div style={{ padding: 24, borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
+                  <div style={{ fontSize: 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 16 }}>Breakdown</div>
+                  {(() => { const al = selectedStrategy ? selectedStrategy.allocations.map(a => ({ ...a, protocol: PROTOCOLS.find(x => x.id === a.id) })) : Object.entries(customAllocations).map(([id, pct]) => ({ id: parseInt(id), pct: totalPct > 0 ? Math.round(pct / totalPct * 100) : 0, protocol: PROTOCOLS.find(x => x.id === parseInt(id)) }));
+                    if (!al.length) return <div style={{ textAlign: "center", padding: "40px 20px", color: "#52525B" }}><div style={{ fontSize: 24, marginBottom: 8 }}>◇</div><div style={{ fontSize: 13 }}>No allocations. Build one in Strategy tab.</div></div>;
+                    return al.map((a, i) => { const b = parseFloat(btcAmount || 0) * a.pct / 100; return (
+                      <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 0", borderBottom: i < al.length - 1 ? "1px solid #1E1F2A" : "none" }}>
+                        <div style={{ width: 42, height: 42, borderRadius: 10, background: `${a.protocol.color}12`, border: `1px solid ${a.protocol.color}25`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, color: a.protocol.color, flexShrink: 0 }}>{a.protocol.logo}</div>
+                        <div style={{ flex: 1 }}><div style={{ fontFamily: "'Sora'", fontWeight: 600, fontSize: 14, color: "#F7F7F8" }}>{a.protocol.name}</div><div style={{ fontSize: 11, color: "#52525B", marginTop: 2 }}>{a.protocol.category} · {a.protocol.apy}% · {a.protocol.lockup}</div></div>
+                        <div style={{ textAlign: "right" }}><div style={{ fontFamily: "'Sora'", fontWeight: 700, fontSize: 15, color: "#F7F7F8" }}>{b.toFixed(4)} BTC</div><div style={{ fontSize: 11, color: "#52525B", marginTop: 1 }}>{a.pct}% · +{(b * a.protocol.apy / 100).toFixed(5)}/yr</div></div>
+                      </div>); }); })()}
+                </div>
+              </div>
+              <div>
+                <div style={{ padding: 24, borderRadius: 12, background: "linear-gradient(135deg, rgba(247,147,26,0.06), #111218)", border: "1px solid #F7931A25", position: "sticky", top: 24 }}>
+                  <div style={{ fontSize: 10, color: "#F7931A", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 20 }}>Summary</div>
+                  <div style={{ marginBottom: 24 }}><div style={{ fontSize: 10, color: "#52525B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Blended APY</div><div style={{ fontFamily: "'Sora'", fontSize: 42, fontWeight: 700, color: "#4ADE80", letterSpacing: "-0.03em", lineHeight: 1 }}>{wApy.toFixed(1)}%</div></div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 24 }}>
+                    {[["Yearly", (parseFloat(btcAmount || 0) * wApy / 100), 4], ["Monthly", (parseFloat(btcAmount || 0) * wApy / 100 / 12), 5]].map(([l, v, d]) => (
+                      <div key={l} style={{ padding: "12px 14px", borderRadius: 8, background: "#08090E" }}>
+                        <div style={{ fontSize: 10, color: "#52525B", textTransform: "uppercase", letterSpacing: "0.08em" }}>{l}</div>
+                        <div style={{ fontFamily: "'Sora'", fontWeight: 700, fontSize: 16, color: "#F7F7F8", marginTop: 4 }}>{v.toFixed(d)} BTC</div>
+                        <div style={{ fontSize: 10, color: "#52525B", marginTop: 2 }}>≈ ${(v * btcPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                      </div>))}
+                  </div>
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ fontSize: 10, color: "#52525B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Allocation</div>
+                    <div style={{ display: "flex", height: 8, borderRadius: 4, overflow: "hidden", gap: 2 }}>
+                      {(selectedStrategy ? selectedStrategy.allocations : Object.entries(customAllocations).map(([id, pct]) => ({ id: parseInt(id), pct: totalPct > 0 ? Math.round(pct / totalPct * 100) : 0 }))).map(a => { const pr = PROTOCOLS.find(x => x.id === a.id); return <div key={a.id} style={{ width: `${a.pct}%`, height: "100%", background: `linear-gradient(90deg, ${pr.color}90, ${pr.color})`, borderRadius: 2 }} />; })}
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+                      {(selectedStrategy ? selectedStrategy.allocations : Object.entries(customAllocations).map(([id, pct]) => ({ id: parseInt(id), pct: totalPct > 0 ? Math.round(pct / totalPct * 100) : 0 }))).map(a => { const pr = PROTOCOLS.find(x => x.id === a.id); return <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "#A1A1AA" }}><div style={{ width: 6, height: 6, borderRadius: 2, background: pr.color }} />{pr.name} {a.pct}%</div>; })}
+                    </div>
+                  </div>
+                  <button onClick={() => setShowModal(true)} disabled={wApy === 0} style={{
+                    width: "100%", padding: 16, borderRadius: 10, border: "none", cursor: wApy > 0 ? "pointer" : "not-allowed",
+                    background: wApy > 0 ? "linear-gradient(135deg, #F7931A, #E8850F)" : "#1E1F2A",
+                    color: wApy > 0 ? "#08090E" : "#52525B", fontFamily: "'Sora'", fontSize: 16, fontWeight: 700,
+                    boxShadow: wApy > 0 ? "0 4px 24px rgba(247,147,26,0.35)" : "none",
+                  }}>{wApy > 0 ? "Deploy with One Click ⚡" : "Build a Strategy First"}</button>
+                  <div style={{ fontSize: 10, color: "#52525B", textAlign: "center", marginTop: 10, lineHeight: 1.5 }}>Batched atomic transactions. Review before confirming.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal */}
+        {showModal && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(8,9,14,0.85)", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setShowModal(false)}>
+            <div onClick={e => e.stopPropagation()} style={{ width: 440, padding: 32, borderRadius: 16, background: "linear-gradient(135deg, #151620, #111218)", border: "1px solid #F7931A30", boxShadow: "0 24px 80px rgba(0,0,0,0.6)" }}>
+              <div style={{ textAlign: "center", marginBottom: 28 }}>
+                <div style={{ width: 64, height: 64, borderRadius: 16, margin: "0 auto 16px", background: "linear-gradient(135deg, rgba(247,147,26,0.2), rgba(247,147,26,0.05))", border: "1px solid #F7931A40", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>⚡</div>
+                <h3 style={{ fontFamily: "'Sora'", fontSize: 20, fontWeight: 700, color: "#F7F7F8", margin: "0 0 6px 0" }}>Confirm Allocation</h3>
+                <p style={{ fontSize: 13, color: "#71717A", margin: 0 }}>Deploying {btcAmount} BTC across {selectedStrategy ? selectedStrategy.allocations.length : Object.keys(customAllocations).length} protocols</p>
+              </div>
+              <div style={{ padding: 16, borderRadius: 10, background: "#08090E", border: "1px solid #1E1F2A", marginBottom: 24 }}>
+                {[["Total", `${btcAmount} BTC`, "#F7F7F8"], ["Blended APY", `${wApy.toFixed(1)}%`, "#4ADE80"], ["Annual Yield", `${(parseFloat(btcAmount || 0) * wApy / 100).toFixed(4)} BTC`, "#4ADE80"], ["Gas Est.", "~0.00012 BTC", "#A1A1AA"]].map(([l, v, c], i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: i < 3 ? 10 : 0 }}><span style={{ fontSize: 12, color: "#71717A" }}>{l}</span><span style={{ fontSize: 13, fontWeight: 600, color: c }}>{v}</span></div>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: 14, borderRadius: 8, border: "1px solid #1E1F2A", background: "transparent", color: "#A1A1AA", fontFamily: "'Sora'", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+                <button onClick={() => { setShowModal(false); alert("🎉 Demo! In production this triggers a wallet transaction."); }} style={{ flex: 2, padding: 14, borderRadius: 8, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #F7931A, #E8850F)", color: "#08090E", fontFamily: "'Sora'", fontSize: 14, fontWeight: 700, boxShadow: "0 4px 20px rgba(247,147,26,0.35)" }}>Confirm & Deploy ⚡</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <footer style={{ padding: "32px 0 24px", marginTop: 48, borderTop: "1px solid rgba(247,147,26,0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ fontSize: 11, color: "#3F3F46" }}>© 2026 yieldsonbitcoin.com</div>
+          <div style={{ display: "flex", gap: 20, fontSize: 11, color: "#52525B" }}>{["Docs", "API", "Twitter", "Discord"].map(l => <span key={l} style={{ cursor: "pointer" }}>{l}</span>)}</div>
+        </footer>
+      </div>
+    </div>
+  );
+}
