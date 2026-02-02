@@ -45,4 +45,22 @@ The entire app is in `yieldsonbitcoin.jsx`:
 
 ## Development
 
-No package.json, build, or test configuration. This component is designed to be imported into a React project with its own build tooling.
+```bash
+npm install     # Install dependencies
+npm run dev     # Start dev server at localhost:3000
+npm run build   # Production build
+npm run start   # Run production server
+```
+
+## Project Structure
+
+```
+app/
+  layout.jsx    # Root layout with metadata
+  page.jsx      # Imports and exports main App component
+yieldsonbitcoin.jsx  # Main application component
+```
+
+## Deployment
+
+Deploy on Vercel with the **Next.js** preset. No additional configuration needed.
