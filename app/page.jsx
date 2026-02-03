@@ -1,3 +1,6 @@
+"use client";
 import App from '../yieldsonbitcoin'
 
-export default App
+export default function HomePage() {
+  return <App initialPage="home" />
+}

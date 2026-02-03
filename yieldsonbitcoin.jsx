@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useBtcPrice } from "@/lib/hooks/useBtcPrice";
 import { useProtocols } from "@/lib/hooks/useProtocols";
 import { CATEGORIES, RISK_LEVELS, SORT_OPTIONS, STRATEGIES } from "@/lib/constants/protocols";
@@ -250,33 +252,6 @@ function ProtocolDetail({ protocol, btcPrice, btcAmount, setBtcAmount, onBack, o
               ))}
             </div>
           </div>
-
-          {/* User Reviews */}
-          <div style={{ padding: 24, borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ color: "#F7931A" }}>⭐</span>
-                <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: 16, fontWeight: 600, color: "#F7F7F8", margin: 0 }}>User Reviews</h3>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ color: "#FBBF24" }}>★</span>
-                <span style={{ fontSize: 14, fontWeight: 600, color: "#F7F7F8" }}>4.{protocol.id % 5 + 5}</span>
-                <span style={{ fontSize: 12, color: "#52525B" }}>({(protocol.id * 17 + 50)} reviews)</span>
-              </div>
-            </div>
-            <div style={{ padding: 16, borderRadius: 10, background: "#0D0E14", border: "1px solid #1E1F2A" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: protocol.color + "30", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: protocol.color }}>◆</div>
-                  <span style={{ fontSize: 12, fontWeight: 500, color: "#A1A1AA" }}>0xCryptoWhale</span>
-                </div>
-                <div style={{ color: "#FBBF24", fontSize: 10 }}>★★★★★</div>
-              </div>
-              <p style={{ fontSize: 12, color: "#71717A", lineHeight: 1.6, margin: 0 }}>
-                Consistent yields and very clear transparency regarding the vault strategies. One of the few BTC yield options I trust with high capital.
-              </p>
-            </div>
-          </div>
         </div>
 
         {/* Right Column - Allocate Panel */}
@@ -439,9 +414,10 @@ function DataStatusIndicator({ priceStatus, protocolStatus, onRefresh, isValidat
 }
 
 /* ═══════════════════════════ MAIN ═══════════════════════════ */
-export default function App() {
-  const [page, setPage] = useState("home");
-  const [view, setView] = useState("explore");
+export default function App({ initialPage = "home", initialView = "explore", initialProtocolSlug = null }) {
+  const router = useRouter();
+  const [page, setPage] = useState(initialPage);
+  const [view, setView] = useState(initialView === "protocol" ? "explore" : initialView);
   const [category, setCategory] = useState("All");
   const [riskFilter, setRiskFilter] = useState("All");
   const [sort, setSort] = useState("apy-desc");
@@ -456,7 +432,7 @@ export default function App() {
   const [hProt, setHProt] = useState(null);
   const [xProt, setXProt] = useState(null);
   const [scrollY, setScrollY] = useState(0);
-  const [viewingProtocol, setViewingProtocol] = useState(null);
+  const [viewingProtocolSlug, setViewingProtocolSlug] = useState(initialProtocolSlug);
 
   useEffect(() => { setTimeout(() => setAIn(true), 80); }, []);
   useEffect(() => {
@@ -496,7 +472,16 @@ export default function App() {
     return 0;
   }, [PROTOCOLS, selectedStrategy, customAllocations, totalPct]);
 
-  const enterApp = () => { setPage("app"); window.scrollTo(0, 0); };
+  // Get viewing protocol from slug
+  const viewingProtocol = useMemo(() => {
+    if (!viewingProtocolSlug) return null;
+    return PROTOCOLS.find(p => p.urlSlug === viewingProtocolSlug) || null;
+  }, [PROTOCOLS, viewingProtocolSlug]);
+
+  // Navigation helpers
+  const enterApp = () => { router.push("/explore"); };
+  const navigateTo = (path) => { router.push(path); };
+  const openProtocol = (protocol) => { router.push(`/protocol/${protocol.urlSlug}`); };
 
   const css = `
     @keyframes floatP { 0%,100%{transform:translateY(0) translateX(0)} 25%{transform:translateY(-30px) translateX(10px)} 50%{transform:translateY(-10px) translateX(-15px)} 75%{transform:translateY(-40px) translateX(5px)} }
@@ -556,6 +541,30 @@ export default function App() {
         {/* Orbit rings */}
         <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 520, height: 520, border: "1px solid rgba(247,147,26,0.05)", borderRadius: "50%", pointerEvents: "none" }} />
         <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 720, height: 720, border: "1px solid rgba(247,147,26,0.025)", borderRadius: "50%", pointerEvents: "none" }} />
+
+        {/* Floating protocol badges */}
+        {[
+          { name: "Pendle", apy: "10%", color: "#F472B6", logo: "◉", pos: { top: "18%", right: "12%" }, delay: "0.8s", dur: "7s" },
+          { name: "Morpho", apy: "7.3%", color: "#67E8F9", logo: "◑", pos: { top: "22%", left: "10%" }, delay: "1s", dur: "8s" },
+          { name: "SolvBTC", apy: "8.5%", color: "#A78BFA", logo: "◈", pos: { bottom: "28%", left: "8%" }, delay: "1.2s", dur: "6s" },
+          { name: "BounceBit", apy: "10%", color: "#FBBF24", logo: "◎", pos: { bottom: "24%", right: "10%" }, delay: "1.4s", dur: "9s" },
+        ].map((p, i) => (
+          <div key={i} style={{
+            position: "absolute", ...p.pos,
+            display: "flex", alignItems: "center", gap: 10,
+            padding: "10px 16px", borderRadius: 12,
+            background: "rgba(17,18,24,0.7)", border: `1px solid ${p.color}18`,
+            backdropFilter: "blur(12px)", boxShadow: `0 4px 20px ${p.color}10`,
+            opacity: aIn ? 0.6 : 0, animation: aIn ? `floatP ${p.dur} ease-in-out infinite, slideU 0.6s ease ${p.delay} both` : "none",
+            pointerEvents: "none",
+          }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: `${p.color}12`, border: `1px solid ${p.color}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: p.color, opacity: 0.85 }}>{p.logo}</div>
+            <div>
+              <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: 13, color: "#A1A1AA" }}>{p.name}</div>
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: 14, color: "#4ADE80", opacity: 0.8 }}>{p.apy} <span style={{ fontSize: 10, color: "#52525B", fontWeight: 500 }}>APY</span></div>
+            </div>
+          </div>
+        ))}
 
         {/* Live badge */}
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 16px 6px 8px", borderRadius: 100, background: "rgba(247,147,26,0.08)", border: "1px solid rgba(247,147,26,0.15)", marginBottom: 36, opacity: aIn ? 1 : 0, animation: aIn ? "slideD 0.6s ease forwards" : "none" }}>
@@ -743,13 +752,13 @@ export default function App() {
       <div style={{ position: "relative", zIndex: 1, maxWidth: 1320, margin: "0 auto", padding: "0 24px" }}>
         {/* Header */}
         <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 0", borderBottom: "1px solid rgba(247,147,26,0.12)", opacity: aIn ? 1 : 0, transform: aIn ? "translateY(0)" : "translateY(-10px)", transition: "all 0.6s cubic-bezier(0.22,1,0.36,1)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14, cursor: "pointer" }} onClick={() => setPage("home")}>
+          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 14, cursor: "pointer", textDecoration: "none" }}>
             <div style={{ width: 36, height: 36, borderRadius: 8, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, color: "#08090E", boxShadow: "0 0 20px rgba(247,147,26,0.3)" }}>yB</div>
             <div><div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 17, color: "#F7F7F8", letterSpacing: "-0.02em" }}>yields<span style={{ color: "#F7931A" }}>on</span>bitcoin</div><div style={{ fontSize: 10, color: "#71717A", letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 1 }}>Every BTC yield. One dashboard.</div></div>
-          </div>
+          </Link>
           <nav style={{ display: "flex", gap: 2, background: "#111218", borderRadius: 8, padding: 3, border: "1px solid #1E1F2A" }}>
             {[["explore", "Explore"], ["strategy", "Strategy"], ["allocate", "Allocate"]].map(([k, l]) => (
-              <button key={k} onClick={() => setView(k)} style={{ padding: "8px 20px", borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 500, background: view === k ? "rgba(247,147,26,0.12)" : "transparent", color: view === k ? "#F7931A" : "#71717A", transition: "all 0.2s" }}>{l}</button>
+              <Link key={k} href={`/${k}`} style={{ padding: "8px 20px", borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 500, background: view === k ? "rgba(247,147,26,0.12)" : "transparent", color: view === k ? "#F7931A" : "#71717A", transition: "all 0.2s", textDecoration: "none" }}>{l}</Link>
             ))}
           </nav>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -784,8 +793,8 @@ export default function App() {
                 btcPrice={btcPrice}
                 btcAmount={btcAmount}
                 setBtcAmount={setBtcAmount}
-                onBack={() => setViewingProtocol(null)}
-                onAllocate={(p) => { setCustomAllocations(pr => ({ ...pr, [p.id]: pr[p.id] || 25 })); setView("allocate"); setViewingProtocol(null); }}
+                onBack={() => router.push("/explore")}
+                onAllocate={(p) => { setCustomAllocations(pr => ({ ...pr, [p.id]: pr[p.id] || 25 })); router.push("/allocate"); }}
               />
             ) : (
               <>
@@ -803,6 +812,8 @@ export default function App() {
                     {SORT_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>
                   {selectedProtocols.length >= 2 && <button onClick={() => setComparing(!comparing)} style={{ padding: "10px 18px", borderRadius: 8, border: comparing ? "1px solid #F7931A" : "1px solid #F7931A50", background: comparing ? "rgba(247,147,26,0.12)" : "transparent", color: "#F7931A", fontSize: 12, fontWeight: 600, fontFamily: "'Sora', sans-serif", cursor: "pointer" }}>{comparing ? "✕ Close" : `Compare (${selectedProtocols.length})`}</button>}
+                  <div style={{ flex: 1 }} />
+                  <Link href="/strategy" style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: "linear-gradient(135deg, #F7931A, #E8850F)", color: "#08090E", fontSize: 12, fontWeight: 700, fontFamily: "'Sora', sans-serif", cursor: "pointer", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, boxShadow: "0 2px 12px rgba(247,147,26,0.25)" }}>Build your Strategy →</Link>
                 </div>
 
                 {comparing && selectedProtocols.length >= 2 && (
@@ -840,8 +851,8 @@ export default function App() {
                             <div style={{ fontSize: 11, color: "#52525B" }}>Range: {p.apyRange[0]}–{p.apyRange[1]}% · {p.audits} audits · Min: {p.minDeposit} BTC</div>
                             <div style={{ display: "flex", gap: 8 }}>
                               <button onClick={e => { e.stopPropagation(); toggleP(p.id); }} style={{ padding: "6px 14px", borderRadius: 6, fontSize: 11, fontWeight: 600, fontFamily: "'Sora'", cursor: "pointer", border: "none", background: selectedProtocols.includes(p.id) ? "#F7931A20" : "#1E1F2A", color: selectedProtocols.includes(p.id) ? "#F7931A" : "#A1A1AA" }}>{selectedProtocols.includes(p.id) ? "✓ Selected" : "+ Compare"}</button>
-                              <button onClick={e => { e.stopPropagation(); setViewingProtocol(p); }} style={{ padding: "6px 14px", borderRadius: 6, fontSize: 11, fontWeight: 600, fontFamily: "'Sora'", cursor: "pointer", border: "1px solid #38BDF850", background: "rgba(56,189,248,0.08)", color: "#38BDF8" }}>View Details</button>
-                              <button onClick={e => { e.stopPropagation(); setCustomAllocations(pr => ({ ...pr, [p.id]: pr[p.id] || 25 })); setView("allocate"); }} style={{ padding: "6px 14px", borderRadius: 6, fontSize: 11, fontWeight: 600, fontFamily: "'Sora'", cursor: "pointer", border: "1px solid #F7931A50", background: "rgba(247,147,26,0.08)", color: "#F7931A" }}>Allocate →</button>
+                              <button onClick={e => { e.stopPropagation(); openProtocol(p); }} style={{ padding: "6px 14px", borderRadius: 6, fontSize: 11, fontWeight: 600, fontFamily: "'Sora'", cursor: "pointer", border: "1px solid #38BDF850", background: "rgba(56,189,248,0.08)", color: "#38BDF8" }}>View Details</button>
+                              <button onClick={e => { e.stopPropagation(); setCustomAllocations(pr => ({ ...pr, [p.id]: pr[p.id] || 25 })); router.push("/allocate"); }} style={{ padding: "6px 14px", borderRadius: 6, fontSize: 11, fontWeight: 600, fontFamily: "'Sora'", cursor: "pointer", border: "1px solid #F7931A50", background: "rgba(247,147,26,0.08)", color: "#F7931A" }}>Allocate →</button>
                             </div>
                           </div>
                         </div>
@@ -873,8 +884,8 @@ export default function App() {
                   </div>
                   <p style={{ fontSize: 12, color: "#71717A", lineHeight: 1.5, margin: "0 0 16px 0" }}>{st.description}</p>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}><RiskBadge risk={st.riskLevel} /><div style={{ fontSize: 11, color: "#52525B" }}>Est: <span style={{ color: "#4ADE80", fontWeight: 600 }}>{ay.toFixed(4)} BTC/yr</span></div></div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>{st.allocations.map(a => { const pr = PROTOCOLS.find(x => x.id === a.id); return (<div key={a.id} style={{ display: "flex", alignItems: "center", gap: 8 }}><div style={{ width: 90, fontSize: 11, color: "#A1A1AA", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><span style={{ color: pr.color }}>{pr.logo}</span> {pr.name}</div><div style={{ flex: 1, height: 6, borderRadius: 3, background: "#1E1F2A", overflow: "hidden" }}><div style={{ width: `${a.pct}%`, height: "100%", borderRadius: 3, background: `linear-gradient(90deg, ${pr.color}80, ${pr.color})` }} /></div><div style={{ width: 36, fontSize: 11, color: "#71717A", textAlign: "right" }}>{a.pct}%</div></div>); })}</div>
-                  {sel && <button onClick={e => { e.stopPropagation(); setView("allocate"); }} style={{ width: "100%", marginTop: 16, padding: 12, borderRadius: 8, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #F7931A, #E8850F)", color: "#08090E", fontFamily: "'Sora'", fontSize: 14, fontWeight: 700, boxShadow: "0 4px 20px rgba(247,147,26,0.3)" }}>Deploy Strategy →</button>}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>{st.allocations.map(a => { const pr = PROTOCOLS.find(x => x.id === a.id); return (<div key={a.id} style={{ display: "flex", alignItems: "center", gap: 8 }}><div onClick={e => { e.stopPropagation(); openProtocol(pr); }} style={{ width: 90, fontSize: 11, color: "#A1A1AA", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }} onMouseEnter={e => e.target.style.color = "#F7F7F8"} onMouseLeave={e => e.target.style.color = "#A1A1AA"}><span style={{ color: pr.color }}>{pr.logo}</span> {pr.name}</div><div style={{ flex: 1, height: 6, borderRadius: 3, background: "#1E1F2A", overflow: "hidden" }}><div style={{ width: `${a.pct}%`, height: "100%", borderRadius: 3, background: `linear-gradient(90deg, ${pr.color}80, ${pr.color})` }} /></div><div style={{ width: 36, fontSize: 11, color: "#71717A", textAlign: "right" }}>{a.pct}%</div></div>); })}</div>
+                  {sel && <button onClick={e => { e.stopPropagation(); router.push("/allocate"); }} style={{ width: "100%", marginTop: 16, padding: 12, borderRadius: 8, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #F7931A, #E8850F)", color: "#08090E", fontFamily: "'Sora'", fontSize: 14, fontWeight: 700, boxShadow: "0 4px 20px rgba(247,147,26,0.3)" }}>Deploy Strategy →</button>}
                 </div>); })}
             </div>
             {/* Custom */}
@@ -887,12 +898,12 @@ export default function App() {
                 {PROTOCOLS.map(p => { const added = customAllocations[p.id] !== undefined; return (
                   <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 8, background: added ? `${p.color}08` : "#08090E", border: added ? `1px solid ${p.color}25` : "1px solid #1E1F2A" }}>
                     <span style={{ color: p.color, fontSize: 16 }}>{p.logo}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12, fontWeight: 600, color: "#E4E4E7", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div><div style={{ fontSize: 10, color: "#52525B" }}>{p.apy}% APY</div></div>
+                    <div onClick={() => openProtocol(p)} style={{ flex: 1, minWidth: 0, cursor: "pointer" }}><div style={{ fontSize: 12, fontWeight: 600, color: "#E4E4E7", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div><div style={{ fontSize: 10, color: "#52525B" }}>{p.apy}% APY</div></div>
                     {added ? <div style={{ display: "flex", alignItems: "center", gap: 8 }}><input type="range" min={5} max={100} step={5} value={customAllocations[p.id]} onClick={e => e.stopPropagation()} onChange={e => { setSelectedStrategy(null); setCustomAllocations(pr => ({ ...pr, [p.id]: parseInt(e.target.value) })); }} style={{ width: 60, accentColor: p.color }} /><span style={{ fontSize: 11, color: p.color, fontWeight: 600, width: 32, textAlign: "right" }}>{customAllocations[p.id]}%</span><button onClick={() => setCustomAllocations(pr => { const n = { ...pr }; delete n[p.id]; return n; })} style={{ background: "none", border: "none", color: "#52525B", cursor: "pointer", fontSize: 14, padding: "0 4px" }}>×</button></div>
                       : <button onClick={() => { setSelectedStrategy(null); setCustomAllocations(pr => ({ ...pr, [p.id]: 25 })); }} style={{ padding: "4px 10px", borderRadius: 4, border: "1px solid #1E1F2A", background: "transparent", color: "#71717A", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>+ Add</button>}
                   </div>); })}
               </div>
-              {Object.keys(customAllocations).length > 0 && <div style={{ marginTop: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}><div style={{ fontSize: 12, color: totalPct === 100 ? "#4ADE80" : "#FBBF24" }}>Total: {totalPct}% {totalPct !== 100 && "(normalized)"}</div><button onClick={() => setView("allocate")} style={{ padding: "12px 28px", borderRadius: 8, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #F7931A, #E8850F)", color: "#08090E", fontFamily: "'Sora'", fontSize: 14, fontWeight: 700, boxShadow: "0 4px 20px rgba(247,147,26,0.3)" }}>Deploy Custom →</button></div>}
+              {Object.keys(customAllocations).length > 0 && <div style={{ marginTop: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}><div style={{ fontSize: 12, color: totalPct === 100 ? "#4ADE80" : "#FBBF24" }}>Total: {totalPct}% {totalPct !== 100 && "(normalized)"}</div><button onClick={() => router.push("/allocate")} style={{ padding: "12px 28px", borderRadius: 8, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #F7931A, #E8850F)", color: "#08090E", fontFamily: "'Sora'", fontSize: 14, fontWeight: 700, boxShadow: "0 4px 20px rgba(247,147,26,0.3)" }}>Deploy Custom →</button></div>}
             </div>
           </div>
         )}
