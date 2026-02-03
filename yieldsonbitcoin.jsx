@@ -813,6 +813,7 @@ export default function App({ initialPage = "home", initialView = "explore", ini
     return {};
   });
   const [showModal, setShowModal] = useState(false);
+  const [showComingSoon, setShowComingSoon] = useState(false);
   const [aIn, setAIn] = useState(false);
   const [hProt, setHProt] = useState(null);
   const [scrollY, setScrollY] = useState(0);
@@ -880,6 +881,7 @@ export default function App({ initialPage = "home", initialView = "explore", ini
     @keyframes pulseG { 0%,100%{box-shadow:0 0 30px rgba(247,147,26,0.2),0 0 60px rgba(247,147,26,0.1)} 50%{box-shadow:0 0 50px rgba(247,147,26,0.4),0 0 100px rgba(247,147,26,0.15)} }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
     @keyframes slideU { from{opacity:0;transform:translateY(40px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
     @keyframes slideD { from{opacity:0;transform:translateY(-20px)} to{opacity:1;transform:translateY(0)} }
     @keyframes ticker { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
     @keyframes borderP { 0%,100%{border-color:rgba(247,147,26,0.12)} 50%{border-color:rgba(247,147,26,0.35)} }
@@ -1128,14 +1130,14 @@ export default function App({ initialPage = "home", initialView = "explore", ini
             { s: "02", t: "Strategize", d: "Choose a pre-built strategy or create your own. Drag sliders to allocate. Blended APY calculates in real-time.", i: "◈", dt: "3 preset strategies" },
             { s: "03", t: "Allocate", d: "Review your positions, estimated yields, risk assessment. Deploy across all selected protocols in a single transaction.", i: "⚡", dt: "One-click deploy" },
           ].map((item, i) => (
-            <div key={i} style={{ padding: 32, borderRadius: 16, background: "linear-gradient(160deg, #0D0E14, #111218)", border: "1px solid #1A1B25", position: "relative", overflow: "hidden", transition: "all 0.3s" }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(247,147,26,0.2)"; e.currentTarget.style.transform = "translateY(-4px)"; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = "#1A1B25"; e.currentTarget.style.transform = "none"; }}>
-              <div style={{ position: "absolute", top: -8, right: 16, fontFamily: "'Sora', sans-serif", fontSize: 80, fontWeight: 800, color: "rgba(247,147,26,0.04)", lineHeight: 1, pointerEvents: "none" }}>{item.s}</div>
-              <div style={{ width: 48, height: 48, borderRadius: 12, background: "rgba(247,147,26,0.08)", border: "1px solid rgba(247,147,26,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, color: "#F7931A", marginBottom: 20 }}>{item.i}</div>
+            <div key={i} style={{ padding: 32, borderRadius: 16, background: "rgba(255,255,255,0.03)", border: "1px solid #27272A", backdropFilter: "blur(10px)", boxShadow: "0 4px 30px rgba(0,0,0,0.15)", position: "relative", overflow: "hidden", transition: "all 0.3s" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(247,147,26,0.35)"; e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.transform = "translateY(-4px)"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#27272A"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.transform = "none"; }}>
+              <div style={{ position: "absolute", top: -8, right: 16, fontFamily: "'Sora', sans-serif", fontSize: 80, fontWeight: 800, color: "rgba(247,147,26,0.06)", lineHeight: 1, pointerEvents: "none" }}>{item.s}</div>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: "rgba(247,147,26,0.12)", border: "1px solid rgba(247,147,26,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, color: "#F7931A", marginBottom: 20 }}>{item.i}</div>
               <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: 22, fontWeight: 700, color: "#F7F7F8", margin: "0 0 12px 0", letterSpacing: "-0.02em" }}>{item.t}</h3>
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "#71717A", lineHeight: 1.7, margin: "0 0 20px 0" }}>{item.d}</p>
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 12px", borderRadius: 6, background: "rgba(247,147,26,0.06)", border: "1px solid rgba(247,147,26,0.1)", fontSize: 11, color: "#F7931A", fontWeight: 600 }}>{item.dt}</div>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "#A1A1AA", lineHeight: 1.7, margin: "0 0 20px 0" }}>{item.d}</p>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 12px", borderRadius: 6, background: "rgba(247,147,26,0.1)", border: "1px solid rgba(247,147,26,0.2)", fontSize: 11, color: "#F7931A", fontWeight: 600 }}>{item.dt}</div>
             </div>
           ))}
         </div>
@@ -1242,14 +1244,14 @@ export default function App({ initialPage = "home", initialView = "explore", ini
             <div><div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 17, color: "#F7F7F8", letterSpacing: "-0.02em" }}>yields<span style={{ color: "#F7931A" }}>on</span>bitcoin</div><div style={{ fontSize: 10, color: "#71717A", letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 1 }}>Every BTC yield. One dashboard.</div></div>
           </Link>
           <nav style={{ display: "flex", gap: 2, background: "#111218", borderRadius: 8, padding: 3, border: "1px solid #1E1F2A" }}>
-            {[["explore", "Explore"], ["portfolio", "Portfolio"], ["strategy", "Strategy"], ["allocate", "Allocate"]].map(([k, l]) => (
+            {[["explore", "Explore"], ["strategy", "Strategy"], ["allocate", "Allocate"]].map(([k, l]) => (
               <Link key={k} href={`/${k}`} style={{ padding: "8px 20px", borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 500, background: view === k ? "rgba(247,147,26,0.12)" : "transparent", color: view === k ? "#F7931A" : "#71717A", transition: "all 0.2s", textDecoration: "none" }}>{l}</Link>
             ))}
           </nav>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <DataStatusIndicator priceStatus={priceStatus} protocolStatus={protocolStatus} onRefresh={handleRefresh} isValidating={isValidating} />
             <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, background: "#111218", border: "1px solid #1E1F2A", fontSize: 12, color: "#A1A1AA" }}><span style={{ color: "#F7931A", fontSize: 14 }}>₿</span><span style={{ color: "#F7F7F8", fontWeight: 600 }}>${btcPrice.toLocaleString()}</span></div>
-            <button style={{ padding: "8px 20px", borderRadius: 8, border: "1px solid #F7931A", background: "linear-gradient(135deg, rgba(247,147,26,0.15), rgba(247,147,26,0.05))", color: "#F7931A", fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Connect Wallet</button>
+            <Link href="/portfolio" style={{ padding: "8px 20px", borderRadius: 8, border: "1px solid #F7931A", background: "linear-gradient(135deg, rgba(247,147,26,0.15), rgba(247,147,26,0.05))", color: "#F7931A", fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer", textDecoration: "none" }}>Portfolio</Link>
           </div>
         </header>
 
@@ -1457,7 +1459,22 @@ export default function App({ initialPage = "home", initialView = "explore", ini
               </div>
               <div style={{ display: "flex", gap: 10 }}>
                 <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: 14, borderRadius: 8, border: "1px solid #1E1F2A", background: "transparent", color: "#A1A1AA", fontFamily: "'Sora'", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-                <button onClick={() => { setShowModal(false); alert("🎉 Demo! In production this triggers a wallet transaction."); }} style={{ flex: 2, padding: 14, borderRadius: 8, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #F7931A, #E8850F)", color: "#08090E", fontFamily: "'Sora'", fontSize: 14, fontWeight: 700, boxShadow: "0 4px 20px rgba(247,147,26,0.35)" }}>Confirm & Deploy ⚡</button>
+                <button onClick={() => { setShowModal(false); setShowComingSoon(true); }} style={{ flex: 2, padding: 14, borderRadius: 8, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #F7931A, #E8850F)", color: "#08090E", fontFamily: "'Sora'", fontSize: 14, fontWeight: 700, boxShadow: "0 4px 20px rgba(247,147,26,0.35)" }}>Confirm & Deploy ⚡</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Coming Soon Popup */}
+        {showComingSoon && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(8,9,14,0.85)", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", animation: "fadeIn 0.2s ease-out" }} onClick={() => setShowComingSoon(false)}>
+            <div onClick={e => e.stopPropagation()} style={{ width: 400, padding: 40, borderRadius: 20, background: "linear-gradient(135deg, #151620, #111218)", border: "1px solid #F7931A30", boxShadow: "0 24px 80px rgba(0,0,0,0.6), 0 0 60px rgba(247,147,26,0.1)", textAlign: "center", animation: "slideU 0.3s ease-out" }}>
+              <div style={{ width: 80, height: 80, borderRadius: 20, margin: "0 auto 24px", background: "linear-gradient(135deg, rgba(247,147,26,0.2), rgba(247,147,26,0.05))", border: "1px solid #F7931A40", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>🚀</div>
+              <h3 style={{ fontFamily: "'Sora'", fontSize: 24, fontWeight: 700, color: "#F7F7F8", margin: "0 0 12px 0" }}>Coming Soon</h3>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: "#A1A1AA", lineHeight: 1.7, margin: "0 0 28px 0" }}>One-click deployment is under development. Follow us on Twitter for updates!</p>
+              <div style={{ display: "flex", gap: 12 }}>
+                <button onClick={() => setShowComingSoon(false)} style={{ flex: 1, padding: 14, borderRadius: 10, border: "1px solid #27272A", background: "rgba(255,255,255,0.03)", backdropFilter: "blur(10px)", color: "#A1A1AA", fontFamily: "'Sora'", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Close</button>
+                <a href="https://twitter.com/jaybtc" target="_blank" rel="noopener noreferrer" style={{ flex: 1, padding: 14, borderRadius: 10, border: "none", background: "linear-gradient(135deg, #F7931A, #E8850F)", color: "#08090E", fontFamily: "'Sora'", fontSize: 14, fontWeight: 700, cursor: "pointer", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center" }}>Follow @jaybtc</a>
               </div>
             </div>
           </div>
