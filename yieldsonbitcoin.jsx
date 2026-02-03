@@ -42,34 +42,104 @@ function RiskGrade({ risk }) {
   );
 }
 
-/* ─── APY Chart Component ─── */
-function APYChart({ data, color, height = 180 }) {
-  const min = Math.min(...data) * 0.9;
-  const max = Math.max(...data) * 1.05;
+/* ─── APY/TVL Chart Component ─── */
+function HistoryChart({ data, color, height = 180, isPercentage = true, timeRange = "1M" }) {
+  const [hoveredIdx, setHoveredIdx] = useState(null);
+
+  // Generate more data points based on time range
+  const chartData = useMemo(() => {
+    const multiplier = { "1D": 24, "1W": 7, "1M": 30, "ALL": 90 }[timeRange] || 30;
+    const baseData = data.length >= multiplier ? data :
+      Array.from({ length: multiplier }, (_, i) => {
+        const progress = i / (multiplier - 1);
+        const idx = Math.min(Math.floor(progress * (data.length - 1)), data.length - 1);
+        const nextIdx = Math.min(idx + 1, data.length - 1);
+        const lerp = (progress * (data.length - 1)) - idx;
+        const base = data[idx] + (data[nextIdx] - data[idx]) * lerp;
+        // Add some noise for realism
+        const noise = (Math.sin(i * 2.3) * 0.1 + Math.cos(i * 1.7) * 0.05) * base;
+        return Math.max(0, base + noise);
+      });
+    return baseData;
+  }, [data, timeRange]);
+
+  const min = Math.min(...chartData) * 0.95;
+  const max = Math.max(...chartData) * 1.05;
   const range = max - min || 1;
-  const barWidth = 100 / data.length;
+  const current = chartData[chartData.length - 1];
+  const first = chartData[0];
+  const change = ((current - first) / first * 100).toFixed(1);
+  const isPositive = current >= first;
+
+  // Generate X-axis labels based on time range
+  const xLabels = useMemo(() => {
+    const labels = { "1D": ["00:00", "06:00", "12:00", "18:00", "Now"], "1W": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "1M": ["Week 1", "Week 2", "Week 3", "Week 4"], "ALL": ["3M ago", "2M ago", "1M ago", "Now"] };
+    return labels[timeRange] || labels["1M"];
+  }, [timeRange]);
 
   return (
     <div style={{ position: "relative", height, width: "100%" }}>
       {/* Y-axis labels */}
-      <div style={{ position: "absolute", left: 0, top: 0, bottom: 20, width: 45, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-        <span style={{ fontSize: 10, color: "#52525B" }}>{max.toFixed(1)}%</span>
-        <span style={{ fontSize: 10, color: "#52525B" }}>{((max + min) / 2).toFixed(1)}%</span>
-        <span style={{ fontSize: 10, color: "#52525B" }}>{min.toFixed(1)}%</span>
+      <div style={{ position: "absolute", left: 0, top: 0, bottom: 28, width: 50, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+        <span style={{ fontSize: 10, color: "#52525B" }}>{isPercentage ? `${max.toFixed(1)}%` : `$${(max/1000).toFixed(0)}B`}</span>
+        <span style={{ fontSize: 10, color: "#52525B" }}>{isPercentage ? `${((max + min) / 2).toFixed(1)}%` : `$${((max+min)/2000).toFixed(1)}B`}</span>
+        <span style={{ fontSize: 10, color: "#52525B" }}>{isPercentage ? `${min.toFixed(1)}%` : `$${(min/1000).toFixed(0)}B`}</span>
+      </div>
+      {/* Grid lines */}
+      <div style={{ position: "absolute", left: 55, right: 0, top: 0, bottom: 28, pointerEvents: "none" }}>
+        {[0, 0.5, 1].map(y => (
+          <div key={y} style={{ position: "absolute", left: 0, right: 0, top: `${y * 100}%`, height: 1, background: "#1E1F2A" }} />
+        ))}
       </div>
       {/* Chart area */}
-      <div style={{ position: "absolute", left: 50, right: 0, top: 0, bottom: 20, display: "flex", alignItems: "flex-end", gap: 4 }}>
-        {data.map((v, i) => (
-          <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-            <div style={{
-              width: "100%", maxWidth: 40,
-              height: `${((v - min) / range) * 100}%`,
-              background: `linear-gradient(180deg, ${color} 0%, ${color}60 100%)`,
-              borderRadius: "4px 4px 0 0",
-              minHeight: 8
-            }} />
-          </div>
+      <div style={{ position: "absolute", left: 55, right: 0, top: 0, bottom: 28 }}>
+        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "flex-end", gap: 2 }}>
+          {chartData.map((v, i) => {
+            const barHeight = Math.max(4, ((v - min) / range) * 100);
+            return (
+              <div
+                key={i}
+                style={{ flex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "center", position: "relative" }}
+                onMouseEnter={() => setHoveredIdx(i)}
+                onMouseLeave={() => setHoveredIdx(null)}
+              >
+                {/* Hover tooltip */}
+                {hoveredIdx === i && (
+                  <div style={{
+                    position: "absolute", bottom: `${barHeight}%`, marginBottom: 8, padding: "6px 10px",
+                    background: "#1A1B25", border: "1px solid #2A2B35", borderRadius: 6,
+                    fontSize: 11, color: "#F7F7F8", whiteSpace: "nowrap", zIndex: 10,
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.3)"
+                  }}>
+                    {isPercentage ? `${v.toFixed(2)}%` : `$${(v).toFixed(0)}M`}
+                  </div>
+                )}
+                <div style={{
+                  width: "100%", maxWidth: 16,
+                  height: `${barHeight}%`,
+                  background: hoveredIdx === i
+                    ? `linear-gradient(180deg, ${color} 0%, ${color}90 100%)`
+                    : `linear-gradient(180deg, ${color}90 0%, ${color}40 100%)`,
+                  borderRadius: "3px 3px 0 0",
+                  transition: "all 0.15s ease",
+                  cursor: "pointer"
+                }} />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      {/* X-axis labels */}
+      <div style={{ position: "absolute", left: 55, right: 0, bottom: 0, height: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        {xLabels.map((label, i) => (
+          <span key={i} style={{ fontSize: 9, color: "#52525B" }}>{label}</span>
         ))}
+      </div>
+      {/* Change indicator */}
+      <div style={{ position: "absolute", top: 0, right: 0, display: "flex", alignItems: "center", gap: 4 }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: isPositive ? "#4ADE80" : "#F87171" }}>
+          {isPositive ? "↑" : "↓"} {Math.abs(change)}%
+        </span>
       </div>
     </div>
   );
@@ -77,8 +147,21 @@ function APYChart({ data, color, height = 180 }) {
 
 /* ─── Protocol Detail View ─── */
 function ProtocolDetail({ protocol, btcPrice, btcAmount, setBtcAmount, onBack, onAllocate }) {
-  const [chartTab, setChartTab] = useState("1W");
+  const [chartType, setChartType] = useState("APY History");
+  const [chartTab, setChartTab] = useState("1M");
   const [allocateAmount, setAllocateAmount] = useState("0.00");
+
+  // Generate TVL history from current TVL (simulate historical growth)
+  const tvlHistory = useMemo(() => {
+    const tvl = protocol.tvl;
+    // Generate 12 data points showing growth pattern
+    return Array.from({ length: 12 }, (_, i) => {
+      const progress = i / 11;
+      const growthFactor = 0.7 + progress * 0.3; // 70% to 100% of current TVL
+      const noise = (Math.sin(i * 1.5) * 0.08 + Math.cos(i * 2.1) * 0.05);
+      return Math.max(1, tvl * growthFactor * (1 + noise));
+    });
+  }, [protocol.tvl]);
 
   // Generate audit display from protocol auditors data
   const auditIcons = ["🛡️", "🔒", "✓", "◆", "⚡"];
@@ -184,15 +267,16 @@ function ProtocolDetail({ protocol, btcPrice, btcAmount, setBtcAmount, onBack, o
       <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 24 }}>
         {/* Left Column */}
         <div>
-          {/* APY Chart */}
+          {/* APY/TVL Chart */}
           <div style={{ padding: 24, borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A", marginBottom: 20 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <div style={{ display: "flex", gap: 16 }}>
                 {["APY History", "TVL Growth"].map(tab => (
-                  <span key={tab} style={{
+                  <span key={tab} onClick={() => setChartType(tab)} style={{
                     fontSize: 13, fontWeight: 500, cursor: "pointer", paddingBottom: 8,
-                    color: tab === "APY History" ? "#F7931A" : "#71717A",
-                    borderBottom: tab === "APY History" ? "2px solid #F7931A" : "none"
+                    color: chartType === tab ? "#F7931A" : "#71717A",
+                    borderBottom: chartType === tab ? "2px solid #F7931A" : "none",
+                    transition: "all 0.2s"
                   }}>{tab}</span>
                 ))}
               </div>
@@ -207,7 +291,13 @@ function ProtocolDetail({ protocol, btcPrice, btcAmount, setBtcAmount, onBack, o
                 ))}
               </div>
             </div>
-            <APYChart data={protocol.trend} color={protocol.color} height={160} />
+            <HistoryChart
+              data={chartType === "APY History" ? protocol.trend : tvlHistory}
+              color={chartType === "APY History" ? "#4ADE80" : "#38BDF8"}
+              height={180}
+              isPercentage={chartType === "APY History"}
+              timeRange={chartTab}
+            />
           </div>
 
           {/* Protocol Mechanics */}
@@ -414,7 +504,7 @@ function DataStatusIndicator({ priceStatus, protocolStatus, onRefresh, isValidat
 }
 
 /* ═══════════════════════════ MAIN ═══════════════════════════ */
-export default function App({ initialPage = "home", initialView = "explore", initialProtocolSlug = null }) {
+export default function App({ initialPage = "home", initialView = "explore", initialProtocolSlug = null, initialStrategy = null, initialCustom = false }) {
   const router = useRouter();
   const [page, setPage] = useState(initialPage);
   const [view, setView] = useState(initialView === "protocol" ? "explore" : initialView);
@@ -425,12 +515,29 @@ export default function App({ initialPage = "home", initialView = "explore", ini
   const [selectedProtocols, setSelectedProtocols] = useState([]);
   const [comparing, setComparing] = useState(false);
   const [btcAmount, setBtcAmount] = useState("1.0");
-  const [selectedStrategy, setSelectedStrategy] = useState(null);
-  const [customAllocations, setCustomAllocations] = useState({});
+  const [selectedStrategy, setSelectedStrategy] = useState(() => {
+    // Initialize from URL param if provided
+    if (initialStrategy) {
+      const found = STRATEGIES.find(s => s.name.toLowerCase() === initialStrategy.toLowerCase());
+      return found || null;
+    }
+    return null;
+  });
+  const [customAllocations, setCustomAllocations] = useState(() => {
+    // Restore custom allocations from sessionStorage on allocate page with custom param
+    if (typeof window !== 'undefined' && initialView === 'allocate' && initialCustom) {
+      const saved = sessionStorage.getItem('customAllocations');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch { return {}; }
+      }
+    }
+    return {};
+  });
   const [showModal, setShowModal] = useState(false);
   const [aIn, setAIn] = useState(false);
   const [hProt, setHProt] = useState(null);
-  const [xProt, setXProt] = useState(null);
   const [scrollY, setScrollY] = useState(0);
   const [viewingProtocolSlug, setViewingProtocolSlug] = useState(initialProtocolSlug);
 
@@ -453,7 +560,15 @@ export default function App({ initialPage = "home", initialView = "explore", ini
   };
   const isValidating = priceValidating || protocolValidating;
 
-  const stats = useMemo(() => ({ totalTVL: PROTOCOLS.reduce((s, p) => s + p.tvl, 0), avgApy: PROTOCOLS.reduce((s, p) => s + p.apy, 0) / PROTOCOLS.length, maxApy: Math.max(...PROTOCOLS.map(p => p.apy)), count: PROTOCOLS.length }), [PROTOCOLS]);
+  const stats = useMemo(() => {
+    const totalTVL = PROTOCOLS.reduce((s, p) => s + p.tvl, 0);
+    // TVL-weighted average APY
+    const weightedApySum = PROTOCOLS.reduce((s, p) => s + (p.apy * p.tvl), 0);
+    const avgApy = totalTVL > 0 ? weightedApySum / totalTVL : 0;
+    const maxApy = Math.max(...PROTOCOLS.map(p => p.apy));
+    const highestProtocol = PROTOCOLS.find(p => p.apy === maxApy);
+    return { totalTVL, avgApy, maxApy, count: PROTOCOLS.length, highestProtocol };
+  }, [PROTOCOLS]);
   const filteredProtocols = useMemo(() => {
     let l = [...PROTOCOLS];
     if (category !== "All") l = l.filter(p => p.category === category);
@@ -520,7 +635,7 @@ export default function App({ initialPage = "home", initialView = "explore", ini
         transition: "all 0.3s", display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 8, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "#06070B", boxShadow: "0 0 16px rgba(247,147,26,0.3)" }}>yB</div>
+          <div style={{ width: 34, height: 34, borderRadius: 8, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "#06070B", boxShadow: "0 0 16px rgba(247,147,26,0.3)" }}>y₿</div>
           <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 16, color: "#F7F7F8", letterSpacing: "-0.02em" }}>yields<span style={{ color: "#F7931A" }}>on</span>bitcoin</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
@@ -729,7 +844,7 @@ export default function App({ initialPage = "home", initialView = "explore", ini
       {/* Footer */}
       <footer style={{ position: "relative", zIndex: 1, padding: "28px 40px", borderTop: "1px solid rgba(247,147,26,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 22, height: 22, borderRadius: 5, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "#06070B" }}>yB</div>
+          <div style={{ width: 22, height: 22, borderRadius: 5, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "#06070B" }}>y₿</div>
           <span style={{ fontSize: 11, color: "#3F3F46" }}>© 2026 yieldsonbitcoin.com</span>
         </div>
         <div style={{ display: "flex", gap: 24, fontSize: 12 }}>
@@ -753,7 +868,7 @@ export default function App({ initialPage = "home", initialView = "explore", ini
         {/* Header */}
         <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 0", borderBottom: "1px solid rgba(247,147,26,0.12)", opacity: aIn ? 1 : 0, transform: aIn ? "translateY(0)" : "translateY(-10px)", transition: "all 0.6s cubic-bezier(0.22,1,0.36,1)" }}>
           <Link href="/" style={{ display: "flex", alignItems: "center", gap: 14, cursor: "pointer", textDecoration: "none" }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, color: "#08090E", boxShadow: "0 0 20px rgba(247,147,26,0.3)" }}>yB</div>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, color: "#08090E", boxShadow: "0 0 20px rgba(247,147,26,0.3)" }}>y₿</div>
             <div><div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 17, color: "#F7F7F8", letterSpacing: "-0.02em" }}>yields<span style={{ color: "#F7931A" }}>on</span>bitcoin</div><div style={{ fontSize: 10, color: "#71717A", letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 1 }}>Every BTC yield. One dashboard.</div></div>
           </Link>
           <nav style={{ display: "flex", gap: 2, background: "#111218", borderRadius: 8, padding: 3, border: "1px solid #1E1F2A" }}>
@@ -773,7 +888,7 @@ export default function App({ initialPage = "home", initialView = "explore", ini
           {[
             { l: "Total Value Locked", v: formatTVL(stats.totalTVL), s: "across all protocols" },
             { l: "Average APY", v: `${stats.avgApy.toFixed(1)}%`, s: "weighted by TVL" },
-            { l: "Highest Yield", v: `${stats.maxApy.toFixed(1)}%`, s: "Ethena sBTC", a: true },
+            { l: "Highest Yield", v: `${stats.maxApy.toFixed(1)}%`, s: stats.highestProtocol?.name || "Top protocol", a: true },
             { l: "Protocols Tracked", v: stats.count.toString(), s: "and growing" },
           ].map((st, i) => (
             <div key={i} style={{ padding: "18px 20px", borderRadius: 10, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
@@ -828,7 +943,7 @@ export default function App({ initialPage = "home", initialView = "explore", ini
 
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))", gap: 14 }}>
                   {filteredProtocols.map(p => (
-                    <div key={p.id} onMouseEnter={() => setHProt(p.id)} onMouseLeave={() => setHProt(null)} onClick={() => setXProt(xProt === p.id ? null : p.id)}
+                    <div key={p.id} onMouseEnter={() => setHProt(p.id)} onMouseLeave={() => setHProt(null)} onClick={() => openProtocol(p)}
                       style={{ padding: 20, borderRadius: 12, cursor: "pointer", background: selectedProtocols.includes(p.id) ? "linear-gradient(135deg, rgba(247,147,26,0.08), #111218)" : hProt === p.id ? "linear-gradient(135deg, #151620, #111218)" : "linear-gradient(135deg, #111218, #0D0E14)", border: selectedProtocols.includes(p.id) ? "1px solid #F7931A40" : "1px solid #1E1F2A", transition: "all 0.25s", transform: hProt === p.id ? "translateY(-2px)" : "none", boxShadow: hProt === p.id ? `0 8px 32px ${p.color}10` : "none" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -844,19 +959,6 @@ export default function App({ initialPage = "home", initialView = "explore", ini
                         </div>
                         <MiniSparkline data={p.trend} color={p.color} />
                       </div>
-                      {xProt === p.id && (
-                        <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${p.color}20` }}>
-                          <p style={{ fontSize: 12, color: "#A1A1AA", lineHeight: 1.6, margin: "0 0 14px 0" }}>{p.description}</p>
-                          <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
-                            <div style={{ fontSize: 11, color: "#52525B" }}>Range: {p.apyRange[0]}–{p.apyRange[1]}% · {p.audits} audits · Min: {p.minDeposit} BTC</div>
-                            <div style={{ display: "flex", gap: 8 }}>
-                              <button onClick={e => { e.stopPropagation(); toggleP(p.id); }} style={{ padding: "6px 14px", borderRadius: 6, fontSize: 11, fontWeight: 600, fontFamily: "'Sora'", cursor: "pointer", border: "none", background: selectedProtocols.includes(p.id) ? "#F7931A20" : "#1E1F2A", color: selectedProtocols.includes(p.id) ? "#F7931A" : "#A1A1AA" }}>{selectedProtocols.includes(p.id) ? "✓ Selected" : "+ Compare"}</button>
-                              <button onClick={e => { e.stopPropagation(); openProtocol(p); }} style={{ padding: "6px 14px", borderRadius: 6, fontSize: 11, fontWeight: 600, fontFamily: "'Sora'", cursor: "pointer", border: "1px solid #38BDF850", background: "rgba(56,189,248,0.08)", color: "#38BDF8" }}>View Details</button>
-                              <button onClick={e => { e.stopPropagation(); setCustomAllocations(pr => ({ ...pr, [p.id]: pr[p.id] || 25 })); router.push("/allocate"); }} style={{ padding: "6px 14px", borderRadius: 6, fontSize: 11, fontWeight: 600, fontFamily: "'Sora'", cursor: "pointer", border: "1px solid #F7931A50", background: "rgba(247,147,26,0.08)", color: "#F7931A" }}>Allocate →</button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>
@@ -885,7 +987,7 @@ export default function App({ initialPage = "home", initialView = "explore", ini
                   <p style={{ fontSize: 12, color: "#71717A", lineHeight: 1.5, margin: "0 0 16px 0" }}>{st.description}</p>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}><RiskBadge risk={st.riskLevel} /><div style={{ fontSize: 11, color: "#52525B" }}>Est: <span style={{ color: "#4ADE80", fontWeight: 600 }}>{ay.toFixed(4)} BTC/yr</span></div></div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>{st.allocations.map(a => { const pr = PROTOCOLS.find(x => x.id === a.id); return (<div key={a.id} style={{ display: "flex", alignItems: "center", gap: 8 }}><div onClick={e => { e.stopPropagation(); openProtocol(pr); }} style={{ width: 90, fontSize: 11, color: "#A1A1AA", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }} onMouseEnter={e => e.target.style.color = "#F7F7F8"} onMouseLeave={e => e.target.style.color = "#A1A1AA"}><span style={{ color: pr.color }}>{pr.logo}</span> {pr.name}</div><div style={{ flex: 1, height: 6, borderRadius: 3, background: "#1E1F2A", overflow: "hidden" }}><div style={{ width: `${a.pct}%`, height: "100%", borderRadius: 3, background: `linear-gradient(90deg, ${pr.color}80, ${pr.color})` }} /></div><div style={{ width: 36, fontSize: 11, color: "#71717A", textAlign: "right" }}>{a.pct}%</div></div>); })}</div>
-                  {sel && <button onClick={e => { e.stopPropagation(); router.push("/allocate"); }} style={{ width: "100%", marginTop: 16, padding: 12, borderRadius: 8, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #F7931A, #E8850F)", color: "#08090E", fontFamily: "'Sora'", fontSize: 14, fontWeight: 700, boxShadow: "0 4px 20px rgba(247,147,26,0.3)" }}>Deploy Strategy →</button>}
+                  {sel && <button onClick={e => { e.stopPropagation(); router.push(`/allocate?strategy=${encodeURIComponent(st.name)}`); }} style={{ width: "100%", marginTop: 16, padding: 12, borderRadius: 8, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #F7931A, #E8850F)", color: "#08090E", fontFamily: "'Sora'", fontSize: 14, fontWeight: 700, boxShadow: "0 4px 20px rgba(247,147,26,0.3)" }}>Deploy Strategy →</button>}
                 </div>); })}
             </div>
             {/* Custom */}
@@ -903,7 +1005,7 @@ export default function App({ initialPage = "home", initialView = "explore", ini
                       : <button onClick={() => { setSelectedStrategy(null); setCustomAllocations(pr => ({ ...pr, [p.id]: 25 })); }} style={{ padding: "4px 10px", borderRadius: 4, border: "1px solid #1E1F2A", background: "transparent", color: "#71717A", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>+ Add</button>}
                   </div>); })}
               </div>
-              {Object.keys(customAllocations).length > 0 && <div style={{ marginTop: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}><div style={{ fontSize: 12, color: totalPct === 100 ? "#4ADE80" : "#FBBF24" }}>Total: {totalPct}% {totalPct !== 100 && "(normalized)"}</div><button onClick={() => router.push("/allocate")} style={{ padding: "12px 28px", borderRadius: 8, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #F7931A, #E8850F)", color: "#08090E", fontFamily: "'Sora'", fontSize: 14, fontWeight: 700, boxShadow: "0 4px 20px rgba(247,147,26,0.3)" }}>Deploy Custom →</button></div>}
+              {Object.keys(customAllocations).length > 0 && <div style={{ marginTop: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}><div style={{ fontSize: 12, color: totalPct === 100 ? "#4ADE80" : "#FBBF24" }}>Total: {totalPct}% {totalPct !== 100 && "(normalized)"}</div><button onClick={() => { if (typeof window !== 'undefined') sessionStorage.setItem('customAllocations', JSON.stringify(customAllocations)); router.push("/allocate?custom=1"); }} style={{ padding: "12px 28px", borderRadius: 8, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #F7931A, #E8850F)", color: "#08090E", fontFamily: "'Sora'", fontSize: 14, fontWeight: 700, boxShadow: "0 4px 20px rgba(247,147,26,0.3)" }}>Deploy Custom →</button></div>}
             </div>
           </div>
         )}
