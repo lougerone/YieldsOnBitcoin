@@ -883,6 +883,10 @@ export default function App({ initialPage = "home", initialView = "explore", ini
     @keyframes slideD { from{opacity:0;transform:translateY(-20px)} to{opacity:1;transform:translateY(0)} }
     @keyframes ticker { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
     @keyframes borderP { 0%,100%{border-color:rgba(247,147,26,0.12)} 50%{border-color:rgba(247,147,26,0.35)} }
+    @keyframes orbitCW { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+    @keyframes orbitCCW { from{transform:rotate(0deg)} to{transform:rotate(-360deg)} }
+    @keyframes orbitGlow { 0%,100%{opacity:0.3;box-shadow:0 0 20px rgba(247,147,26,0.1)} 50%{opacity:0.6;box-shadow:0 0 40px rgba(247,147,26,0.2)} }
+    @keyframes particleFloat { 0%{transform:translateY(0) scale(1);opacity:0.6} 50%{transform:translateY(-20px) scale(1.2);opacity:1} 100%{transform:translateY(-40px) scale(0.8);opacity:0} }
     body{margin:0;padding:0} *{box-sizing:border-box} ::selection{background:rgba(247,147,26,0.3);color:#fff}
     input[type="range"]{-webkit-appearance:none;height:4px;border-radius:2px;background:#1E1F2A;outline:none}
     input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;cursor:pointer;background:#F7931A}
@@ -930,33 +934,122 @@ export default function App({ initialPage = "home", initialView = "explore", ini
 
       {/* ═══ HERO ═══ */}
       <section style={{ position: "relative", zIndex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "120px 40px 80px", textAlign: "center" }}>
-        {/* Orbit rings */}
-        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 520, height: 520, border: "1px solid rgba(247,147,26,0.05)", borderRadius: "50%", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 720, height: 720, border: "1px solid rgba(247,147,26,0.025)", borderRadius: "50%", pointerEvents: "none" }} />
 
-        {/* Floating protocol badges */}
-        {[
-          { name: "Pendle", apy: "10%", color: "#F472B6", logo: "◉", pos: { top: "18%", right: "12%" }, delay: "0.8s", dur: "7s" },
-          { name: "Morpho", apy: "7.3%", color: "#67E8F9", logo: "◑", pos: { top: "22%", left: "10%" }, delay: "1s", dur: "8s" },
-          { name: "SolvBTC", apy: "8.5%", color: "#A78BFA", logo: "◈", pos: { bottom: "28%", left: "8%" }, delay: "1.2s", dur: "6s" },
-          { name: "BounceBit", apy: "10%", color: "#FBBF24", logo: "◎", pos: { bottom: "24%", right: "10%" }, delay: "1.4s", dur: "9s" },
-        ].map((p, i) => (
-          <div key={i} style={{
-            position: "absolute", ...p.pos,
-            display: "flex", alignItems: "center", gap: 10,
-            padding: "10px 16px", borderRadius: 12,
-            background: "rgba(17,18,24,0.7)", border: `1px solid ${p.color}18`,
-            backdropFilter: "blur(12px)", boxShadow: `0 4px 20px ${p.color}10`,
-            opacity: aIn ? 0.6 : 0, animation: aIn ? `floatP ${p.dur} ease-in-out infinite, slideU 0.6s ease ${p.delay} both` : "none",
-            pointerEvents: "none",
-          }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: `${p.color}12`, border: `1px solid ${p.color}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: p.color, opacity: 0.85 }}>{p.logo}</div>
-            <div>
-              <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: 13, color: "#A1A1AA" }}>{p.name}</div>
-              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: 14, color: "#4ADE80", opacity: 0.8 }}>{p.apy} <span style={{ fontSize: 10, color: "#52525B", fontWeight: 500 }}>APY</span></div>
+        {/* Orbital System */}
+        {(() => {
+          const orbits = [
+            { radius: 260, speed: 35, blur: 0, opacity: 0.9, color: "#F7931A", protocols: [
+              { name: "Babylon", logo: "/logos/babylon.png", color: "#F7931A" },
+              { name: "Stacks", logo: "/logos/stacks.png", color: "#38BDF8" },
+            ]},
+            { radius: 380, speed: 50, blur: 0.5, opacity: 0.7, color: "#6EE7B7", protocols: [
+              { name: "Lombard", logo: "/logos/lombard.png", color: "#6EE7B7" },
+              { name: "Botanix", logo: "/logos/botanix.png", color: "#22C55E" },
+              { name: "Lorenzo", logo: "/logos/lorenzo.png", color: "#8B5CF6" },
+            ]},
+            { radius: 500, speed: 70, blur: 1, opacity: 0.5, color: "#3B82F6", protocols: [
+              { name: "Bedrock", logo: "/logos/bedrock.png", color: "#3B82F6" },
+              { name: "Swell", logo: "/logos/swell.png", color: "#38BDF8" },
+              { name: "Chakra", logo: "/logos/chakra.png", color: "#E11D48" },
+            ]},
+            { radius: 640, speed: 90, blur: 2, opacity: 0.35, color: "#FBBF24", protocols: [
+              { name: "BounceBit", logo: "/logos/bouncebit.webp", color: "#FBBF24" },
+              { name: "Merlin", logo: "/logos/merlin.png", color: "#7C3AED" },
+              { name: "Bitlayer", logo: "/logos/bitlayer.png", color: "#EC4899" },
+            ]},
+          ];
+          return (
+            <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 1400, height: 1400, pointerEvents: "none" }}>
+              {/* Ambient center glow */}
+              <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 350, height: 350, background: "radial-gradient(circle, rgba(247,147,26,0.12) 0%, transparent 70%)", borderRadius: "50%", filter: "blur(50px)" }} />
+
+              {/* Orbit rings (static, just visual) */}
+              {orbits.map((orbit, oi) => (
+                <div key={`ring-${oi}`} style={{
+                  position: "absolute", top: "50%", left: "50%",
+                  width: orbit.radius * 2, height: orbit.radius * 2,
+                  marginLeft: -orbit.radius, marginTop: -orbit.radius,
+                  borderRadius: "50%",
+                  border: `1px solid rgba(${oi === 0 ? '247,147,26' : oi === 1 ? '110,231,183' : oi === 2 ? '59,130,246' : '251,191,36'},${0.08 - oi * 0.015})`,
+                  opacity: aIn ? 1 : 0,
+                  transition: "opacity 1s ease",
+                }} />
+              ))}
+
+              {/* Rotating protocol containers */}
+              {orbits.map((orbit, oi) => {
+                const direction = oi % 2 === 0 ? 'CW' : 'CCW';
+                const counterDir = oi % 2 === 0 ? 'CCW' : 'CW';
+                return (
+                <div key={`orbit-${oi}`} style={{
+                  position: "absolute", top: "50%", left: "50%",
+                  width: orbit.radius * 2, height: orbit.radius * 2,
+                  marginLeft: -orbit.radius, marginTop: -orbit.radius,
+                  borderRadius: "50%",
+                  animation: `orbit${direction} ${orbit.speed}s linear infinite`,
+                  opacity: aIn ? orbit.opacity : 0,
+                  transition: "opacity 1s ease",
+                }}>
+                  {orbit.protocols.map((p, pi) => {
+                    const angle = (360 / orbit.protocols.length) * pi;
+                    return (
+                      <div key={pi} style={{
+                        position: "absolute",
+                        top: "50%", left: "50%",
+                        width: 48, height: 48,
+                        marginLeft: -24, marginTop: -24,
+                        transform: `rotate(${angle}deg) translateY(${-orbit.radius}px) rotate(${-angle}deg)`,
+                      }}>
+                        {/* Counter-rotate to stay upright */}
+                        <div style={{
+                          width: 48, height: 48,
+                          animation: `orbit${counterDir} ${orbit.speed}s linear infinite`,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}>
+                          <div style={{
+                            width: 48, height: 48, borderRadius: "50%",
+                            background: `radial-gradient(circle at 30% 30%, ${p.color}25, rgba(6,7,11,0.9))`,
+                            border: `2px solid ${p.color}40`,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            boxShadow: `0 0 25px ${p.color}35`,
+                            filter: `blur(${orbit.blur}px)`,
+                            overflow: "hidden",
+                          }}>
+                            {p.isText ? <span style={{ fontSize: 22, color: p.color }}>{p.logo}</span> : <img src={p.logo} alt={p.name} style={{ width: 32, height: 32, objectFit: "contain", borderRadius: "50%" }} />}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );})}
+
+              {/* Floating particles */}
+              {[...Array(12)].map((_, i) => (
+                <div key={`particle-${i}`} style={{
+                  position: "absolute",
+                  top: `${30 + Math.random() * 40}%`,
+                  left: `${30 + Math.random() * 40}%`,
+                  width: 3, height: 3,
+                  background: "rgba(247,147,26,0.4)",
+                  borderRadius: "50%",
+                  filter: "blur(1px)",
+                  animation: `particleFloat ${4 + Math.random() * 3}s ease-in-out infinite`,
+                  animationDelay: `${Math.random() * 2}s`,
+                  opacity: 0.5,
+                }} />
+              ))}
+
+              {/* Center glow pulse */}
+              <div style={{
+                position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)",
+                width: 180, height: 180, borderRadius: "50%",
+                background: "radial-gradient(circle, rgba(247,147,26,0.08) 0%, transparent 70%)",
+                animation: "pulseG 4s ease-in-out infinite",
+              }} />
             </div>
-          </div>
-        ))}
+          );
+        })()}
 
         {/* Live badge */}
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 16px 6px 8px", borderRadius: 100, background: "rgba(247,147,26,0.08)", border: "1px solid rgba(247,147,26,0.15)", marginBottom: 36, opacity: aIn ? 1 : 0, animation: aIn ? "slideD 0.6s ease forwards" : "none" }}>
