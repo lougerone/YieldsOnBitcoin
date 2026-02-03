@@ -1202,11 +1202,12 @@ export default function App({ initialPage = "home", initialView = "explore", ini
             Build Your Strategy →
           </button>
           <button onClick={() => document.getElementById("how")?.scrollIntoView({ behavior: "smooth" })} style={{
-            padding: "18px 36px", borderRadius: 12, border: "1px solid #27272A",
-            background: "rgba(255,255,255,0.03)", color: "#A1A1AA",
+            padding: "18px 36px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)",
+            background: "rgba(255,255,255,0.06)", color: "#A1A1AA",
             fontFamily: "'Sora', sans-serif", fontSize: 16, fontWeight: 500, cursor: "pointer",
-            backdropFilter: "blur(10px)", transition: "all 0.2s",
-          }} onMouseEnter={e => { e.target.style.borderColor = "#52525B"; e.target.style.color = "#E4E4E7"; }} onMouseLeave={e => { e.target.style.borderColor = "#27272A"; e.target.style.color = "#A1A1AA"; }}>
+            backdropFilter: "blur(12px)", boxShadow: "0 4px 24px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05)",
+            transition: "all 0.2s",
+          }} onMouseEnter={e => { e.target.style.borderColor = "rgba(255,255,255,0.2)"; e.target.style.color = "#E4E4E7"; e.target.style.background = "rgba(255,255,255,0.08)"; }} onMouseLeave={e => { e.target.style.borderColor = "rgba(255,255,255,0.1)"; e.target.style.color = "#A1A1AA"; e.target.style.background = "rgba(255,255,255,0.06)"; }}>
             Learn More
           </button>
         </div>
