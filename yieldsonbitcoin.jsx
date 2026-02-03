@@ -1227,7 +1227,7 @@ export default function App({ initialPage = "home", initialView = "explore", ini
                           <div style={{ width: 40, height: 40, borderRadius: 10, background: `${p.color}15`, border: `1px solid ${p.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, color: p.color }}>{p.logo}</div>
                           <div><div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: 15, color: "#F7F7F8" }}>{p.name}</div><div style={{ fontSize: 11, color: "#71717A", marginTop: 2 }}>{p.category} · {p.chain}</div></div>
                         </div>
-                        <div style={{ textAlign: "right" }}><div style={{ fontFamily: "'Sora', sans-serif", fontSize: p.apyRange && Math.abs(p.apyRange[1] - p.apyRange[0]) > 0.5 ? 18 : 24, fontWeight: 700, color: "#4ADE80", letterSpacing: "-0.02em", lineHeight: 1 }}>{formatAPY(p)}</div><div style={{ fontSize: 10, color: "#52525B", marginTop: 2 }}>{hasTokenRewards(p) ? `incl. ${p.tokenRewards.token}` : "APY"}</div></div>
+                        <div style={{ textAlign: "right" }}><div style={{ fontFamily: "'Sora', sans-serif", fontSize: 24, fontWeight: 700, color: "#4ADE80", letterSpacing: "-0.02em", lineHeight: 1 }}>{formatAPY(p)}</div><div style={{ fontSize: 10, color: "#52525B", marginTop: 2 }}>{hasTokenRewards(p) ? `incl. ${p.tokenRewards.token}` : "APY"}</div></div>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                         <div style={{ display: "flex", gap: 16 }}>
