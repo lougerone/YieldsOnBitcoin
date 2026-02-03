@@ -235,9 +235,15 @@ function ProtocolDetail({ protocol, btcPrice, btcAmount, setBtcAmount, onBack, o
         <div style={{ padding: "16px 20px", borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
           <div style={{ fontSize: 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Current APY</div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <span style={{ fontFamily: "'Sora', sans-serif", fontSize: 28, fontWeight: 700, color: "#4ADE80" }}>{protocol.apy}%</span>
-            <span style={{ fontSize: 11, color: "#4ADE80" }}>+{((protocol.apy - protocol.apyRange[0]) / protocol.apyRange[0] * 100).toFixed(1)}%</span>
+            <span style={{ fontFamily: "'Sora', sans-serif", fontSize: 28, fontWeight: 700, color: "#4ADE80" }}>{formatAPY(protocol)}</span>
+            <span style={{ fontSize: 11, color: "#71717A" }}>total</span>
           </div>
+          {hasTokenRewards(protocol) && (
+            <div style={{ marginTop: 8, fontSize: 10, color: "#71717A", lineHeight: 1.5 }}>
+              Base: {protocol.baseApyRange ? `${protocol.baseApyRange[0]}-${protocol.baseApyRange[1]}%` : `${protocol.baseApy}%`}<br/>
+              + {protocol.tokenRewards.token}: ~{protocol.tokenRewards.apy}%
+            </div>
+          )}
         </div>
         <div style={{ padding: "16px 20px", borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
           <div style={{ fontSize: 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Total TVL</div>
@@ -444,6 +450,277 @@ function ProtocolDetail({ protocol, btcPrice, btcAmount, setBtcAmount, onBack, o
 
 function formatTVL(m) { return m >= 1000 ? `$${(m / 1000).toFixed(1)}B` : `$${m}M`; }
 
+function formatAPY(protocol, showRange = true) {
+  // Show upper range only when apyRange exists
+  if (showRange && protocol.apyRange) {
+    const [, max] = protocol.apyRange;
+    return `${max}%`;
+  }
+  return `${protocol.apy}%`;
+}
+
+function hasTokenRewards(protocol) {
+  return protocol.tokenRewards && protocol.tokenRewards.apy > 0;
+}
+
+function formatAPYBreakdown(protocol) {
+  if (!protocol.tokenRewards) return null;
+  return {
+    base: protocol.baseApy || protocol.apy,
+    baseRange: protocol.baseApyRange,
+    token: protocol.tokenRewards.token,
+    tokenApy: protocol.tokenRewards.apy,
+    note: protocol.tokenRewards.note
+  };
+}
+
+/* ─── Donut Chart ─── */
+function DonutChart({ data, size = 200 }) {
+  const total = data.reduce((s, d) => s + d.value, 0);
+  let cumulative = 0;
+  const strokeWidth = 28;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+
+  return (
+    <div style={{ position: "relative", width: size, height: size }}>
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+        {data.map((d, i) => {
+          const percent = d.value / total;
+          const offset = (cumulative / total) * circumference;
+          cumulative += d.value;
+          return (
+            <circle
+              key={i}
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              fill="none"
+              stroke={d.color}
+              strokeWidth={strokeWidth}
+              strokeDasharray={`${percent * circumference} ${circumference}`}
+              strokeDashoffset={-offset}
+              style={{ transition: "all 0.3s ease" }}
+            />
+          );
+        })}
+      </svg>
+      <div style={{
+        position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+        textAlign: "center"
+      }}>
+        <div style={{ fontSize: 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.1em" }}>Active</div>
+        <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 28, fontWeight: 700, color: "#F7F7F8" }}>{data.length}</div>
+        <div style={{ fontSize: 11, color: "#71717A" }}>Protocols</div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Portfolio View ─── */
+function PortfolioView({ btcPrice, protocols }) {
+  // Mock portfolio data - in production this would come from wallet/API
+  const [portfolio] = useState({
+    totalBtc: 1.2482,
+    walletBalance: 0.1500,
+    allocations: [
+      { protocolId: 4, amount: 0.5000, accruedYield: 0.0125, entryDate: "2025-10-15" },
+      { protocolId: 1, amount: 0.3120, accruedYield: 0.0084, entryDate: "2025-11-02" },
+      { protocolId: 2, amount: 0.2490, accruedYield: 0.0112, entryDate: "2025-11-18" },
+      { protocolId: 3, amount: 0.1372, accruedYield: 0.0052, entryDate: "2025-12-01" },
+    ],
+    activity: [
+      { type: "yield", protocol: "Stacks (STX)", date: "Jan 28, 2026", amount: 0.00042, status: "Completed" },
+      { type: "allocation", protocol: "Babylon Labs", date: "Jan 25, 2026", amount: -0.2490, status: "Confirmed" },
+      { type: "claim", protocol: "Lombard Finance", date: "Jan 22, 2026", amount: 0.0052, status: "Processing" },
+    ]
+  });
+
+  const totalAccruedYield = portfolio.allocations.reduce((s, a) => s + a.accruedYield, 0);
+  const weightedApy = portfolio.allocations.reduce((s, a) => {
+    const protocol = protocols.find(p => p.id === a.protocolId);
+    return s + (protocol?.apy || 0) * (a.amount / portfolio.totalBtc);
+  }, 0);
+
+  const chartData = portfolio.allocations.map(a => {
+    const protocol = protocols.find(p => p.id === a.protocolId);
+    return {
+      name: protocol?.name || "Unknown",
+      value: a.amount,
+      color: protocol?.color || "#71717A",
+      percent: Math.round((a.amount / portfolio.totalBtc) * 100)
+    };
+  });
+
+  const activityIcons = { yield: "↙", allocation: "◈", claim: "◎" };
+
+  return (
+    <div style={{ animation: "slideU 0.4s ease forwards" }}>
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
+        <div>
+          <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: 26, fontWeight: 700, color: "#F7F7F8", margin: "0 0 6px 0" }}>Portfolio Overview</h2>
+          <p style={{ fontSize: 13, color: "#71717A", margin: 0 }}>Track and manage your Bitcoin yield performance across {portfolio.allocations.length} protocols.</p>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button style={{
+            padding: "10px 20px", borderRadius: 8, border: "1px solid #1E1F2A",
+            background: "#111218", color: "#A1A1AA", fontFamily: "'Sora', sans-serif",
+            fontSize: 13, fontWeight: 500, cursor: "pointer", display: "flex", alignItems: "center", gap: 6
+          }}>
+            <span style={{ fontSize: 12 }}>↓</span> Export CSV
+          </button>
+          <button style={{
+            padding: "10px 20px", borderRadius: 8, border: "none",
+            background: "linear-gradient(135deg, #F7931A, #E8850F)", color: "#08090E",
+            fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer",
+            display: "flex", alignItems: "center", gap: 6, boxShadow: "0 2px 12px rgba(247,147,26,0.25)"
+          }}>
+            <span>+</span> Add Funds
+          </button>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
+        <div style={{ padding: "20px 22px", borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
+          <div style={{ fontSize: 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>Total Value Locked</div>
+          <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 28, fontWeight: 700, color: "#F7F7F8", letterSpacing: "-0.02em" }}>{portfolio.totalBtc.toFixed(4)} BTC</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
+            <span style={{ color: "#4ADE80", fontSize: 12 }}>↗ +2.4%</span>
+            <span style={{ fontSize: 11, color: "#52525B" }}>(${(portfolio.totalBtc * btcPrice).toLocaleString()})</span>
+          </div>
+        </div>
+        <div style={{ padding: "20px 22px", borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
+          <div style={{ fontSize: 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>Total Accrued Yield</div>
+          <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 28, fontWeight: 700, color: "#4ADE80", letterSpacing: "-0.02em" }}>{totalAccruedYield.toFixed(4)} BTC</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
+            <span style={{ color: "#4ADE80", fontSize: 12 }}>↗ +1.2%</span>
+            <span style={{ fontSize: 11, color: "#52525B" }}>(${(totalAccruedYield * btcPrice).toLocaleString()})</span>
+          </div>
+        </div>
+        <div style={{ padding: "20px 22px", borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
+          <div style={{ fontSize: 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>Average APY</div>
+          <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 28, fontWeight: 700, color: "#F7F7F8", letterSpacing: "-0.02em" }}>{weightedApy.toFixed(2)}%</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
+            <span style={{ color: "#4ADE80", fontSize: 11 }}>⚖ Stable</span>
+            <span style={{ fontSize: 11, color: "#52525B" }}>vs last week</span>
+          </div>
+        </div>
+        <div style={{ padding: "20px 22px", borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
+          <div style={{ fontSize: 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>Wallet Balance</div>
+          <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 28, fontWeight: 700, color: "#F7F7F8", letterSpacing: "-0.02em" }}>{portfolio.walletBalance.toFixed(4)} BTC</div>
+          <div style={{ fontSize: 11, color: "#52525B", marginTop: 6 }}>Ready for allocation</div>
+        </div>
+      </div>
+
+      {/* Main Grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 20 }}>
+        {/* Left - Donut Chart */}
+        <div style={{ padding: 24, borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
+          <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: 15, fontWeight: 600, color: "#F7F7F8", margin: "0 0 20px 0" }}>Asset Distribution</h3>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
+            <DonutChart data={chartData} size={180} />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {chartData.map((d, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: d.color }} />
+                  <span style={{ fontSize: 12, color: "#A1A1AA" }}>{d.name}</span>
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "#F7F7F8" }}>{d.percent}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right Column */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {/* Active Allocations */}
+          <div style={{ padding: 24, borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: 15, fontWeight: 600, color: "#F7F7F8", margin: 0 }}>Active Allocations</h3>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ADE80" }} />
+                <span style={{ fontSize: 10, color: "#71717A" }}>Last updated 2 mins ago</span>
+              </div>
+            </div>
+
+            {/* Table Header */}
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1.2fr 1.2fr 0.8fr 0.6fr", gap: 12, padding: "10px 0", borderBottom: "1px solid #1E1F2A" }}>
+              {["Protocol", "Allocated", "Accrued Yield", "Current APY", "Action"].map(h => (
+                <span key={h} style={{ fontSize: 10, color: "#52525B", textTransform: "uppercase", letterSpacing: "0.08em" }}>{h}</span>
+              ))}
+            </div>
+
+            {/* Table Rows */}
+            {portfolio.allocations.map((alloc, i) => {
+              const protocol = protocols.find(p => p.id === alloc.protocolId);
+              if (!protocol) return null;
+              return (
+                <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1.2fr 1.2fr 0.8fr 0.6fr", gap: 12, padding: "16px 0", borderBottom: i < portfolio.allocations.length - 1 ? "1px solid #1E1F2A" : "none", alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: `${protocol.color}15`, border: `1px solid ${protocol.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: protocol.color }}>{protocol.logo}</div>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#F7F7F8" }}>{protocol.name}</div>
+                      <div style={{ fontSize: 10, color: "#52525B" }}>{protocol.category}</div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#F7F7F8" }}>{alloc.amount.toFixed(4)} BTC</div>
+                    <div style={{ fontSize: 10, color: "#52525B" }}>${(alloc.amount * btcPrice).toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#4ADE80" }}>+{alloc.accruedYield.toFixed(4)} BTC</div>
+                    <div style={{ fontSize: 10, color: "#52525B" }}>+${(alloc.accruedYield * btcPrice).toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <span style={{ padding: "4px 10px", borderRadius: 4, background: "rgba(74, 222, 128, 0.12)", color: "#4ADE80", fontSize: 11, fontWeight: 600 }}>{formatAPY(protocol)}</span>
+                  </div>
+                  <div>
+                    <button style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #1E1F2A", background: "transparent", color: "#71717A", fontSize: 11, cursor: "pointer" }}>⋯</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Recent Activity */}
+          <div style={{ padding: 24, borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: 15, fontWeight: 600, color: "#F7F7F8", margin: 0 }}>Recent Activity</h3>
+              <span style={{ fontSize: 12, color: "#F7931A", cursor: "pointer" }}>View All</span>
+            </div>
+
+            {portfolio.activity.map((act, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 0", borderBottom: i < portfolio.activity.length - 1 ? "1px solid #1E1F2A" : "none" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: "#1E1F2A", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: act.type === "yield" ? "#4ADE80" : act.type === "allocation" ? "#38BDF8" : "#F7931A" }}>
+                    {activityIcons[act.type]}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: "#F7F7F8" }}>
+                      {act.type === "yield" ? "Yield Accrued" : act.type === "allocation" ? "New Allocation" : "Yield Claimed"}
+                    </div>
+                    <div style={{ fontSize: 11, color: "#52525B" }}>{act.protocol} • {act.date}</div>
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: act.amount > 0 ? "#4ADE80" : "#F7F7F8" }}>
+                    {act.amount > 0 ? "+" : ""}{act.amount.toFixed(act.amount > 0 ? 5 : 4)} BTC
+                  </div>
+                  <div style={{ fontSize: 10, color: act.status === "Completed" ? "#4ADE80" : act.status === "Confirmed" ? "#A1A1AA" : "#FBBF24" }}>{act.status}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Particles ─── */
 function Particles() {
   const ps = useMemo(() => Array.from({ length: 25 }, (_, i) => ({ id: i, x: Math.random() * 100, y: Math.random() * 100, s: 1 + Math.random() * 2, d: 15 + Math.random() * 25, dl: Math.random() * -20, o: 0.08 + Math.random() * 0.2 })), []);
@@ -510,7 +787,7 @@ export default function App({ initialPage = "home", initialView = "explore", ini
   const [view, setView] = useState(initialView === "protocol" ? "explore" : initialView);
   const [category, setCategory] = useState("All");
   const [riskFilter, setRiskFilter] = useState("All");
-  const [sort, setSort] = useState("apy-desc");
+  const [sort, setSort] = useState("tvl-desc");
   const [search, setSearch] = useState("");
   const [selectedProtocols, setSelectedProtocols] = useState([]);
   const [comparing, setComparing] = useState(false);
@@ -635,7 +912,7 @@ export default function App({ initialPage = "home", initialView = "explore", ini
         transition: "all 0.3s", display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 8, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "#06070B", boxShadow: "0 0 16px rgba(247,147,26,0.3)" }}>y₿</div>
+          <div style={{ width: 34, height: 34, borderRadius: 8, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "#06070B", boxShadow: "0 0 16px rgba(247,147,26,0.3)" }}>yB</div>
           <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 16, color: "#F7F7F8", letterSpacing: "-0.02em" }}>yields<span style={{ color: "#F7931A" }}>on</span>bitcoin</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
@@ -739,7 +1016,7 @@ export default function App({ initialPage = "home", initialView = "explore", ini
             <div key={i} style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "0 30px", flexShrink: 0 }}>
               <span style={{ color: p.color, fontSize: 15 }}>{p.logo}</span>
               <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: 13, color: "#A1A1AA" }}>{p.name}</span>
-              <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 13, color: "#4ADE80" }}>{p.apy}%</span>
+              <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 13, color: "#4ADE80" }}>{formatAPY(p)}</span>
               <span style={{ color: "#1E1F2A" }}>│</span>
             </div>
           ))}
@@ -788,7 +1065,7 @@ export default function App({ initialPage = "home", initialView = "explore", ini
                 onMouseEnter={e => e.currentTarget.style.background = "rgba(247,147,26,0.02)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                 <td style={{ padding: "16px 20px" }}><div style={{ display: "flex", alignItems: "center", gap: 10 }}><div style={{ width: 34, height: 34, borderRadius: 8, background: `${p.color}12`, border: `1px solid ${p.color}25`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: p.color }}>{p.logo}</div><span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: 14, color: "#F7F7F8" }}>{p.name}</span></div></td>
                 <td style={{ padding: "16px 20px", fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#71717A" }}>{p.category}</td>
-                <td style={{ padding: "16px 20px" }}><span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 16, color: "#4ADE80" }}>{p.apy}%</span></td>
+                <td style={{ padding: "16px 20px" }}><span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 14, color: "#4ADE80" }}>{formatAPY(p)}</span></td>
                 <td style={{ padding: "16px 20px" }}><MiniSparkline data={p.trend} color={p.color} width={72} height={24} /></td>
                 <td style={{ padding: "16px 20px", fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#A1A1AA" }}>{formatTVL(p.tvl)}</td>
                 <td style={{ padding: "16px 20px" }}><RiskBadge risk={p.risk} /></td>
@@ -844,7 +1121,7 @@ export default function App({ initialPage = "home", initialView = "explore", ini
       {/* Footer */}
       <footer style={{ position: "relative", zIndex: 1, padding: "28px 40px", borderTop: "1px solid rgba(247,147,26,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 22, height: 22, borderRadius: 5, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "#06070B" }}>y₿</div>
+          <div style={{ width: 22, height: 22, borderRadius: 5, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "#06070B" }}>yB</div>
           <span style={{ fontSize: 11, color: "#3F3F46" }}>© 2026 yieldsonbitcoin.com</span>
         </div>
         <div style={{ display: "flex", gap: 24, fontSize: 12 }}>
@@ -868,11 +1145,11 @@ export default function App({ initialPage = "home", initialView = "explore", ini
         {/* Header */}
         <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 0", borderBottom: "1px solid rgba(247,147,26,0.12)", opacity: aIn ? 1 : 0, transform: aIn ? "translateY(0)" : "translateY(-10px)", transition: "all 0.6s cubic-bezier(0.22,1,0.36,1)" }}>
           <Link href="/" style={{ display: "flex", alignItems: "center", gap: 14, cursor: "pointer", textDecoration: "none" }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, color: "#08090E", boxShadow: "0 0 20px rgba(247,147,26,0.3)" }}>y₿</div>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, color: "#08090E", boxShadow: "0 0 20px rgba(247,147,26,0.3)" }}>yB</div>
             <div><div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 17, color: "#F7F7F8", letterSpacing: "-0.02em" }}>yields<span style={{ color: "#F7931A" }}>on</span>bitcoin</div><div style={{ fontSize: 10, color: "#71717A", letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 1 }}>Every BTC yield. One dashboard.</div></div>
           </Link>
           <nav style={{ display: "flex", gap: 2, background: "#111218", borderRadius: 8, padding: 3, border: "1px solid #1E1F2A" }}>
-            {[["explore", "Explore"], ["strategy", "Strategy"], ["allocate", "Allocate"]].map(([k, l]) => (
+            {[["explore", "Explore"], ["portfolio", "Portfolio"], ["strategy", "Strategy"], ["allocate", "Allocate"]].map(([k, l]) => (
               <Link key={k} href={`/${k}`} style={{ padding: "8px 20px", borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 500, background: view === k ? "rgba(247,147,26,0.12)" : "transparent", color: view === k ? "#F7931A" : "#71717A", transition: "all 0.2s", textDecoration: "none" }}>{l}</Link>
             ))}
           </nav>
@@ -935,8 +1212,8 @@ export default function App({ initialPage = "home", initialView = "explore", ini
                   <div style={{ marginBottom: 24, padding: 24, borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #F7931A20" }}>
                     <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: 16, fontWeight: 600, color: "#F7F7F8", marginBottom: 16, marginTop: 0 }}>Protocol Comparison</h3>
                     <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                      <thead><tr>{["Protocol", "Category", "APY", "Range", "TVL", "Risk", "Chain", "Lock", "Audits"].map(h => <th key={h} style={{ textAlign: "left", padding: "10px 14px", color: "#71717A", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", borderBottom: "1px solid #1E1F2A", whiteSpace: "nowrap" }}>{h}</th>)}</tr></thead>
-                      <tbody>{selectedProtocols.map(id => { const p = PROTOCOLS.find(x => x.id === id); return (<tr key={id}><td style={{ padding: "12px 14px", fontWeight: 600, color: "#F7F7F8" }}><span style={{ color: p.color, marginRight: 8 }}>{p.logo}</span>{p.name}</td><td style={{ padding: "12px 14px", color: "#A1A1AA" }}>{p.category}</td><td style={{ padding: "12px 14px", color: "#4ADE80", fontWeight: 700, fontFamily: "'Sora'" }}>{p.apy}%</td><td style={{ padding: "12px 14px", color: "#71717A" }}>{p.apyRange[0]}–{p.apyRange[1]}%</td><td style={{ padding: "12px 14px", color: "#A1A1AA" }}>{formatTVL(p.tvl)}</td><td style={{ padding: "12px 14px" }}><RiskBadge risk={p.risk} /></td><td style={{ padding: "12px 14px", color: "#A1A1AA" }}>{p.chain}</td><td style={{ padding: "12px 14px", color: "#A1A1AA" }}>{p.lockup}</td><td style={{ padding: "12px 14px", color: "#A1A1AA" }}>{p.audits}</td></tr>); })}</tbody>
+                      <thead><tr>{["Protocol", "Category", "APY Range", "TVL", "Risk", "Chain", "Lock", "Audits"].map(h => <th key={h} style={{ textAlign: "left", padding: "10px 14px", color: "#71717A", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", borderBottom: "1px solid #1E1F2A", whiteSpace: "nowrap" }}>{h}</th>)}</tr></thead>
+                      <tbody>{selectedProtocols.map(id => { const p = PROTOCOLS.find(x => x.id === id); return (<tr key={id}><td style={{ padding: "12px 14px", fontWeight: 600, color: "#F7F7F8" }}><span style={{ color: p.color, marginRight: 8 }}>{p.logo}</span>{p.name}</td><td style={{ padding: "12px 14px", color: "#A1A1AA" }}>{p.category}</td><td style={{ padding: "12px 14px", color: "#4ADE80", fontWeight: 700, fontFamily: "'Sora'" }}>{formatAPY(p)}</td><td style={{ padding: "12px 14px", color: "#A1A1AA" }}>{formatTVL(p.tvl)}</td><td style={{ padding: "12px 14px" }}><RiskBadge risk={p.risk} /></td><td style={{ padding: "12px 14px", color: "#A1A1AA" }}>{p.chain}</td><td style={{ padding: "12px 14px", color: "#A1A1AA" }}>{p.lockup}</td><td style={{ padding: "12px 14px", color: "#A1A1AA" }}>{p.audits}</td></tr>); })}</tbody>
                     </table></div>
                   </div>
                 )}
@@ -950,7 +1227,7 @@ export default function App({ initialPage = "home", initialView = "explore", ini
                           <div style={{ width: 40, height: 40, borderRadius: 10, background: `${p.color}15`, border: `1px solid ${p.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, color: p.color }}>{p.logo}</div>
                           <div><div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: 15, color: "#F7F7F8" }}>{p.name}</div><div style={{ fontSize: 11, color: "#71717A", marginTop: 2 }}>{p.category} · {p.chain}</div></div>
                         </div>
-                        <div style={{ textAlign: "right" }}><div style={{ fontFamily: "'Sora', sans-serif", fontSize: 24, fontWeight: 700, color: "#4ADE80", letterSpacing: "-0.02em", lineHeight: 1 }}>{p.apy}%</div><div style={{ fontSize: 10, color: "#52525B", marginTop: 2 }}>APY</div></div>
+                        <div style={{ textAlign: "right" }}><div style={{ fontFamily: "'Sora', sans-serif", fontSize: p.apyRange && Math.abs(p.apyRange[1] - p.apyRange[0]) > 0.5 ? 18 : 24, fontWeight: 700, color: "#4ADE80", letterSpacing: "-0.02em", lineHeight: 1 }}>{formatAPY(p)}</div><div style={{ fontSize: 10, color: "#52525B", marginTop: 2 }}>{hasTokenRewards(p) ? `incl. ${p.tokenRewards.token}` : "APY"}</div></div>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                         <div style={{ display: "flex", gap: 16 }}>
@@ -1000,7 +1277,7 @@ export default function App({ initialPage = "home", initialView = "explore", ini
                 {PROTOCOLS.map(p => { const added = customAllocations[p.id] !== undefined; return (
                   <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 8, background: added ? `${p.color}08` : "#08090E", border: added ? `1px solid ${p.color}25` : "1px solid #1E1F2A" }}>
                     <span style={{ color: p.color, fontSize: 16 }}>{p.logo}</span>
-                    <div onClick={() => openProtocol(p)} style={{ flex: 1, minWidth: 0, cursor: "pointer" }}><div style={{ fontSize: 12, fontWeight: 600, color: "#E4E4E7", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div><div style={{ fontSize: 10, color: "#52525B" }}>{p.apy}% APY</div></div>
+                    <div onClick={() => openProtocol(p)} style={{ flex: 1, minWidth: 0, cursor: "pointer" }}><div style={{ fontSize: 12, fontWeight: 600, color: "#E4E4E7", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div><div style={{ fontSize: 10, color: "#52525B" }}>{formatAPY(p)} APY</div></div>
                     {added ? <div style={{ display: "flex", alignItems: "center", gap: 8 }}><input type="range" min={5} max={100} step={5} value={customAllocations[p.id]} onClick={e => e.stopPropagation()} onChange={e => { setSelectedStrategy(null); setCustomAllocations(pr => ({ ...pr, [p.id]: parseInt(e.target.value) })); }} style={{ width: 60, accentColor: p.color }} /><span style={{ fontSize: 11, color: p.color, fontWeight: 600, width: 32, textAlign: "right" }}>{customAllocations[p.id]}%</span><button onClick={() => setCustomAllocations(pr => { const n = { ...pr }; delete n[p.id]; return n; })} style={{ background: "none", border: "none", color: "#52525B", cursor: "pointer", fontSize: 14, padding: "0 4px" }}>×</button></div>
                       : <button onClick={() => { setSelectedStrategy(null); setCustomAllocations(pr => ({ ...pr, [p.id]: 25 })); }} style={{ padding: "4px 10px", borderRadius: 4, border: "1px solid #1E1F2A", background: "transparent", color: "#71717A", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>+ Add</button>}
                   </div>); })}
@@ -1008,6 +1285,11 @@ export default function App({ initialPage = "home", initialView = "explore", ini
               {Object.keys(customAllocations).length > 0 && <div style={{ marginTop: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}><div style={{ fontSize: 12, color: totalPct === 100 ? "#4ADE80" : "#FBBF24" }}>Total: {totalPct}% {totalPct !== 100 && "(normalized)"}</div><button onClick={() => { if (typeof window !== 'undefined') sessionStorage.setItem('customAllocations', JSON.stringify(customAllocations)); router.push("/allocate?custom=1"); }} style={{ padding: "12px 28px", borderRadius: 8, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #F7931A, #E8850F)", color: "#08090E", fontFamily: "'Sora'", fontSize: 14, fontWeight: 700, boxShadow: "0 4px 20px rgba(247,147,26,0.3)" }}>Deploy Custom →</button></div>}
             </div>
           </div>
+        )}
+
+        {/* ═══ PORTFOLIO ═══ */}
+        {view === "portfolio" && (
+          <PortfolioView btcPrice={btcPrice} protocols={PROTOCOLS} />
         )}
 
         {/* ═══ ALLOCATE ═══ */}
@@ -1027,7 +1309,7 @@ export default function App({ initialPage = "home", initialView = "explore", ini
                     return al.map((a, i) => { const b = parseFloat(btcAmount || 0) * a.pct / 100; return (
                       <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 0", borderBottom: i < al.length - 1 ? "1px solid #1E1F2A" : "none" }}>
                         <div style={{ width: 42, height: 42, borderRadius: 10, background: `${a.protocol.color}12`, border: `1px solid ${a.protocol.color}25`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, color: a.protocol.color, flexShrink: 0 }}>{a.protocol.logo}</div>
-                        <div style={{ flex: 1 }}><div style={{ fontFamily: "'Sora'", fontWeight: 600, fontSize: 14, color: "#F7F7F8" }}>{a.protocol.name}</div><div style={{ fontSize: 11, color: "#52525B", marginTop: 2 }}>{a.protocol.category} · {a.protocol.apy}% · {a.protocol.lockup}</div></div>
+                        <div style={{ flex: 1 }}><div style={{ fontFamily: "'Sora'", fontWeight: 600, fontSize: 14, color: "#F7F7F8" }}>{a.protocol.name}</div><div style={{ fontSize: 11, color: "#52525B", marginTop: 2 }}>{a.protocol.category} · {formatAPY(a.protocol)} · {a.protocol.lockup}</div></div>
                         <div style={{ textAlign: "right" }}><div style={{ fontFamily: "'Sora'", fontWeight: 700, fontSize: 15, color: "#F7F7F8" }}>{b.toFixed(4)} BTC</div><div style={{ fontSize: 11, color: "#52525B", marginTop: 1 }}>{a.pct}% · +{(b * a.protocol.apy / 100).toFixed(5)}/yr</div></div>
                       </div>); }); })()}
                 </div>
