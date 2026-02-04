@@ -7,6 +7,19 @@ import { useBtcPrice } from "@/lib/hooks/useBtcPrice";
 import { useProtocols } from "@/lib/hooks/useProtocols";
 import { CATEGORIES, RISK_LEVELS, SORT_OPTIONS, STRATEGIES } from "@/lib/constants/protocols";
 
+/* ─── Responsive Hook ─── */
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
+    setIsMobile(mq.matches);
+    const handler = (e) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [breakpoint]);
+  return isMobile;
+}
+
 /* ─── Portfolio Storage ─── */
 const PORTFOLIO_KEY = 'yob_portfolio';
 
@@ -557,7 +570,7 @@ function DonutChart({ data, size = 200 }) {
 }
 
 /* ─── Portfolio View ─── */
-function PortfolioView({ btcPrice, protocols }) {
+function PortfolioView({ btcPrice, protocols, isMobile }) {
   const [portfolio, setPortfolio] = useState(() => loadPortfolio());
   const [showAddModal, setShowAddModal] = useState(false);
   const [newPosition, setNewPosition] = useState({ protocolId: '', amount: '', entryDate: new Date().toISOString().split('T')[0] });
@@ -630,26 +643,26 @@ function PortfolioView({ btcPrice, protocols }) {
       </div>
 
       {/* Stats Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
-        <div style={{ padding: "20px 22px", borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
-          <div style={{ fontSize: 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>Total Allocated</div>
-          <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 28, fontWeight: 700, color: "#F7F7F8", letterSpacing: "-0.02em" }}>{totalBtc.toFixed(4)} BTC</div>
-          <div style={{ fontSize: 11, color: "#52525B", marginTop: 6 }}>${(totalBtc * btcPrice).toLocaleString()}</div>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: isMobile ? 10 : 14, marginBottom: isMobile ? 16 : 24 }}>
+        <div style={{ padding: isMobile ? "14px 16px" : "20px 22px", borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
+          <div style={{ fontSize: isMobile ? 9 : 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: isMobile ? 6 : 10 }}>Total Allocated</div>
+          <div style={{ fontFamily: "'Sora', sans-serif", fontSize: isMobile ? 18 : 28, fontWeight: 700, color: "#F7F7F8", letterSpacing: "-0.02em" }}>{totalBtc.toFixed(4)} BTC</div>
+          {!isMobile && <div style={{ fontSize: 11, color: "#52525B", marginTop: 6 }}>${(totalBtc * btcPrice).toLocaleString()}</div>}
         </div>
-        <div style={{ padding: "20px 22px", borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
-          <div style={{ fontSize: 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>Estimated Yield</div>
-          <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 28, fontWeight: 700, color: "#4ADE80", letterSpacing: "-0.02em" }}>+{totalAccruedYield.toFixed(6)} BTC</div>
-          <div style={{ fontSize: 11, color: "#52525B", marginTop: 6 }}>+${(totalAccruedYield * btcPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+        <div style={{ padding: isMobile ? "14px 16px" : "20px 22px", borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
+          <div style={{ fontSize: isMobile ? 9 : 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: isMobile ? 6 : 10 }}>Estimated Yield</div>
+          <div style={{ fontFamily: "'Sora', sans-serif", fontSize: isMobile ? 18 : 28, fontWeight: 700, color: "#4ADE80", letterSpacing: "-0.02em" }}>+{totalAccruedYield.toFixed(isMobile ? 4 : 6)} BTC</div>
+          {!isMobile && <div style={{ fontSize: 11, color: "#52525B", marginTop: 6 }}>+${(totalAccruedYield * btcPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>}
         </div>
-        <div style={{ padding: "20px 22px", borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
-          <div style={{ fontSize: 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>Blended APY</div>
-          <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 28, fontWeight: 700, color: "#F7F7F8", letterSpacing: "-0.02em" }}>{weightedApy.toFixed(2)}%</div>
-          <div style={{ fontSize: 11, color: "#52525B", marginTop: 6 }}>weighted average</div>
+        <div style={{ padding: isMobile ? "14px 16px" : "20px 22px", borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
+          <div style={{ fontSize: isMobile ? 9 : 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: isMobile ? 6 : 10 }}>Blended APY</div>
+          <div style={{ fontFamily: "'Sora', sans-serif", fontSize: isMobile ? 18 : 28, fontWeight: 700, color: "#F7F7F8", letterSpacing: "-0.02em" }}>{weightedApy.toFixed(2)}%</div>
+          {!isMobile && <div style={{ fontSize: 11, color: "#52525B", marginTop: 6 }}>weighted average</div>}
         </div>
-        <div style={{ padding: "20px 22px", borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
-          <div style={{ fontSize: 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>Positions</div>
-          <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 28, fontWeight: 700, color: "#F7F7F8", letterSpacing: "-0.02em" }}>{positions.length}</div>
-          <div style={{ fontSize: 11, color: "#52525B", marginTop: 6 }}>across protocols</div>
+        <div style={{ padding: isMobile ? "14px 16px" : "20px 22px", borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
+          <div style={{ fontSize: isMobile ? 9 : 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: isMobile ? 6 : 10 }}>Positions</div>
+          <div style={{ fontFamily: "'Sora', sans-serif", fontSize: isMobile ? 18 : 28, fontWeight: 700, color: "#F7F7F8", letterSpacing: "-0.02em" }}>{positions.length}</div>
+          {!isMobile && <div style={{ fontSize: 11, color: "#52525B", marginTop: 6 }}>across protocols</div>}
         </div>
       </div>
 
@@ -661,7 +674,7 @@ function PortfolioView({ btcPrice, protocols }) {
           <button onClick={() => setShowAddModal(true)} style={{ padding: "12px 24px", borderRadius: 8, border: "none", background: "linear-gradient(135deg, #F7931A, #E8850F)", color: "#08090E", fontFamily: "'Sora', sans-serif", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Add Your First Position</button>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "320px 1fr", gap: isMobile ? 16 : 20 }}>
           {/* Left - Donut Chart */}
           <div style={{ padding: 24, borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
             <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: 15, fontWeight: 600, color: "#F7F7F8", margin: "0 0 20px 0" }}>Asset Distribution</h3>
@@ -877,6 +890,7 @@ function DataStatusIndicator({ priceStatus, protocolStatus, onRefresh, isValidat
 /* ═══════════════════════════ MAIN ═══════════════════════════ */
 export default function App({ initialPage = "home", initialView = "explore", initialProtocolSlug = null, initialStrategy = null, initialCustom = false }) {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const [page, setPage] = useState(initialPage);
   const [view, setView] = useState(initialView === "protocol" ? "explore" : initialView);
   const [category, setCategory] = useState("All");
@@ -1012,34 +1026,34 @@ export default function App({ initialPage = "home", initialView = "explore", ini
 
       {/* NAV */}
       <nav style={{
-        position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, padding: "16px 40px",
+        position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, padding: isMobile ? "12px 16px" : "16px 40px",
         background: scrollY > 50 ? "rgba(6,7,11,0.92)" : "transparent",
         backdropFilter: scrollY > 50 ? "blur(20px)" : "none",
         borderBottom: scrollY > 50 ? "1px solid rgba(247,147,26,0.08)" : "1px solid transparent",
         transition: "all 0.3s", display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 8, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "#06070B", boxShadow: "0 0 16px rgba(247,147,26,0.3)" }}>yB</div>
-          <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 16, color: "#F7F7F8", letterSpacing: "-0.02em" }}>yields<span style={{ color: "#F7931A" }}>on</span>bitcoin</span>
+        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 12 }}>
+          <div style={{ width: isMobile ? 30 : 34, height: isMobile ? 30 : 34, borderRadius: 8, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: isMobile ? 12 : 14, fontWeight: 800, color: "#06070B", boxShadow: "0 0 16px rgba(247,147,26,0.3)" }}>yB</div>
+          {!isMobile && <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 16, color: "#F7F7F8", letterSpacing: "-0.02em" }}>yields<span style={{ color: "#F7931A" }}>on</span>bitcoin</span>}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
-          {["How it Works:how", "Protocols:protocols", "Strategies:strategies"].map(l => { const [label, id] = l.split(":"); return (
+        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 12 : 28 }}>
+          {!isMobile && ["How it Works:how", "Protocols:protocols", "Strategies:strategies"].map(l => { const [label, id] = l.split(":"); return (
             <a key={id} href={`#${id}`} style={{ color: "#71717A", fontSize: 13, fontFamily: "'DM Sans', sans-serif", textDecoration: "none", fontWeight: 500 }}
               onMouseEnter={e => e.target.style.color = "#E4E4E7"} onMouseLeave={e => e.target.style.color = "#71717A"}>{label}</a>
           ); })}
           <button onClick={enterApp} style={{
-            padding: "9px 22px", borderRadius: 8, border: "1px solid #F7931A",
+            padding: isMobile ? "8px 16px" : "9px 22px", borderRadius: 8, border: "1px solid #F7931A",
             background: "linear-gradient(135deg, rgba(247,147,26,0.15), rgba(247,147,26,0.05))",
-            color: "#F7931A", fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer",
+            color: "#F7931A", fontFamily: "'Sora', sans-serif", fontSize: isMobile ? 12 : 13, fontWeight: 600, cursor: "pointer",
           }} onMouseEnter={e => { e.target.style.background = "linear-gradient(135deg, #F7931A, #E8850F)"; e.target.style.color = "#06070B"; }} onMouseLeave={e => { e.target.style.background = "linear-gradient(135deg, rgba(247,147,26,0.15), rgba(247,147,26,0.05))"; e.target.style.color = "#F7931A"; }}>Launch App</button>
         </div>
       </nav>
 
       {/* ═══ HERO ═══ */}
-      <section style={{ position: "relative", zIndex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "120px 40px 80px", textAlign: "center" }}>
+      <section style={{ position: "relative", zIndex: 1, minHeight: isMobile ? "auto" : "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: isMobile ? "100px 20px 60px" : "120px 40px 80px", textAlign: "center" }}>
 
-        {/* Orbital System */}
-        {(() => {
+        {/* Orbital System - Hidden on mobile */}
+        {!isMobile && (() => {
           const orbits = [
             { radius: 260, speed: 35, blur: 0, opacity: 0.9, color: "#F7931A", protocols: [
               { name: "Babylon", logo: "/logos/babylon.png", color: "#F7931A" },
@@ -1178,32 +1192,32 @@ export default function App({ initialPage = "home", initialView = "explore", ini
         </p>
 
         {/* CTAs */}
-        <div style={{ display: "flex", gap: 14, alignItems: "center", opacity: aIn ? 1 : 0, animation: aIn ? "slideU 0.8s cubic-bezier(0.22,1,0.36,1) 0.5s both" : "none" }}>
+        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 14, alignItems: "center", width: isMobile ? "100%" : "auto", opacity: aIn ? 1 : 0, animation: aIn ? "slideU 0.8s cubic-bezier(0.22,1,0.36,1) 0.5s both" : "none" }}>
           <button onClick={enterApp} style={{
-            padding: "18px 44px", borderRadius: 12, border: "none", cursor: "pointer",
+            padding: isMobile ? "16px 32px" : "18px 44px", borderRadius: 12, border: "none", cursor: "pointer",
             background: "linear-gradient(135deg, #F7931A, #E8850F)", color: "#06070B",
-            fontFamily: "'Sora', sans-serif", fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em",
+            fontFamily: "'Sora', sans-serif", fontSize: isMobile ? 15 : 18, fontWeight: 700, letterSpacing: "-0.01em",
             boxShadow: "0 4px 30px rgba(247,147,26,0.35), 0 0 60px rgba(247,147,26,0.15)",
-            animation: "pulseG 3s ease-in-out infinite", transition: "transform 0.2s",
-          }} onMouseEnter={e => e.target.style.transform = "translateY(-2px) scale(1.02)"} onMouseLeave={e => e.target.style.transform = "none"}>
+            animation: "pulseG 3s ease-in-out infinite", transition: "transform 0.2s", width: isMobile ? "100%" : "auto",
+          }} onMouseEnter={e => !isMobile && (e.target.style.transform = "translateY(-2px) scale(1.02)")} onMouseLeave={e => e.target.style.transform = "none"}>
             Build Your Strategy →
           </button>
           <button onClick={() => document.getElementById("how")?.scrollIntoView({ behavior: "smooth" })} style={{
-            padding: "18px 36px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)",
+            padding: isMobile ? "14px 28px" : "18px 36px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)",
             background: "rgba(255,255,255,0.06)", color: "#A1A1AA",
-            fontFamily: "'Sora', sans-serif", fontSize: 16, fontWeight: 500, cursor: "pointer",
+            fontFamily: "'Sora', sans-serif", fontSize: isMobile ? 14 : 16, fontWeight: 500, cursor: "pointer",
             backdropFilter: "blur(12px)", boxShadow: "0 4px 24px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05)",
-            transition: "all 0.2s",
+            transition: "all 0.2s", width: isMobile ? "100%" : "auto",
           }} onMouseEnter={e => { e.target.style.borderColor = "rgba(255,255,255,0.2)"; e.target.style.color = "#E4E4E7"; e.target.style.background = "rgba(255,255,255,0.08)"; }} onMouseLeave={e => { e.target.style.borderColor = "rgba(255,255,255,0.1)"; e.target.style.color = "#A1A1AA"; e.target.style.background = "rgba(255,255,255,0.06)"; }}>
             Learn More
           </button>
         </div>
 
         {/* Scroll hint */}
-        <div style={{ position: "absolute", bottom: 36, left: "50%", transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, opacity: scrollY > 100 ? 0 : 0.35, transition: "opacity 0.3s" }}>
+        {!isMobile && <div style={{ position: "absolute", bottom: 36, left: "50%", transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, opacity: scrollY > 100 ? 0 : 0.35, transition: "opacity 0.3s" }}>
           <div style={{ fontSize: 10, color: "#52525B", letterSpacing: "0.12em", textTransform: "uppercase" }}>Scroll</div>
           <div style={{ width: 1, height: 28, background: "linear-gradient(to bottom, #52525B, transparent)" }} />
-        </div>
+        </div>}
       </section>
 
       {/* ═══ TICKER ═══ */}
@@ -1221,24 +1235,24 @@ export default function App({ initialPage = "home", initialView = "explore", ini
       </section>
 
       {/* ═══ HOW IT WORKS ═══ */}
-      <section id="how" style={{ position: "relative", zIndex: 1, padding: "120px 40px", maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 64 }}>
+      <section id="how" style={{ position: "relative", zIndex: 1, padding: isMobile ? "60px 20px" : "120px 40px", maxWidth: 1200, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: isMobile ? 40 : 64 }}>
           <div style={{ fontSize: 11, color: "#F7931A", textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 12, fontWeight: 600 }}>How it Works</div>
-          <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: 42, fontWeight: 800, color: "#F7F7F8", margin: 0, letterSpacing: "-0.03em" }}>Three steps to earning yield</h2>
+          <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: isMobile ? 28 : 42, fontWeight: 800, color: "#F7F7F8", margin: 0, letterSpacing: "-0.03em" }}>Three steps to earning yield</h2>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: isMobile ? 16 : 24 }}>
           {[
             { s: "01", t: "Compare", d: "Every BTC yield protocol aggregated in real-time. Filter by APY, risk, chain, lockup. No more hopping between dashboards.", i: "⌕", dt: `${stats.count}+ protocols tracked` },
             { s: "02", t: "Strategize", d: "Choose a pre-built strategy or create your own. Drag sliders to allocate. Blended APY calculates in real-time.", i: "◈", dt: "3 preset strategies" },
             { s: "03", t: "Allocate", d: "Review your positions, estimated yields, risk assessment. Deploy across all selected protocols in a single transaction.", i: "⚡", dt: "One-click deploy" },
           ].map((item, i) => (
-            <div key={i} style={{ padding: 32, borderRadius: 16, background: "rgba(255,255,255,0.03)", border: "1px solid #27272A", backdropFilter: "blur(10px)", boxShadow: "0 4px 30px rgba(0,0,0,0.15)", position: "relative", overflow: "hidden", transition: "all 0.3s" }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(247,147,26,0.35)"; e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.transform = "translateY(-4px)"; }}
+            <div key={i} style={{ padding: isMobile ? 24 : 32, borderRadius: 16, background: "rgba(255,255,255,0.03)", border: "1px solid #27272A", backdropFilter: "blur(10px)", boxShadow: "0 4px 30px rgba(0,0,0,0.15)", position: "relative", overflow: "hidden", transition: "all 0.3s" }}
+              onMouseEnter={e => !isMobile && (e.currentTarget.style.borderColor = "rgba(247,147,26,0.35)", e.currentTarget.style.background = "rgba(255,255,255,0.05)", e.currentTarget.style.transform = "translateY(-4px)")}
               onMouseLeave={e => { e.currentTarget.style.borderColor = "#27272A"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.transform = "none"; }}>
-              <div style={{ position: "absolute", top: -8, right: 16, fontFamily: "'Sora', sans-serif", fontSize: 80, fontWeight: 800, color: "rgba(247,147,26,0.06)", lineHeight: 1, pointerEvents: "none" }}>{item.s}</div>
-              <div style={{ width: 48, height: 48, borderRadius: 12, background: "rgba(247,147,26,0.12)", border: "1px solid rgba(247,147,26,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, color: "#F7931A", marginBottom: 20 }}>{item.i}</div>
-              <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: 22, fontWeight: 700, color: "#F7F7F8", margin: "0 0 12px 0", letterSpacing: "-0.02em" }}>{item.t}</h3>
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "#A1A1AA", lineHeight: 1.7, margin: "0 0 20px 0" }}>{item.d}</p>
+              <div style={{ position: "absolute", top: -8, right: 16, fontFamily: "'Sora', sans-serif", fontSize: isMobile ? 60 : 80, fontWeight: 800, color: "rgba(247,147,26,0.06)", lineHeight: 1, pointerEvents: "none" }}>{item.s}</div>
+              <div style={{ width: isMobile ? 40 : 48, height: isMobile ? 40 : 48, borderRadius: 12, background: "rgba(247,147,26,0.12)", border: "1px solid rgba(247,147,26,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: isMobile ? 18 : 22, color: "#F7931A", marginBottom: isMobile ? 16 : 20 }}>{item.i}</div>
+              <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: isMobile ? 18 : 22, fontWeight: 700, color: "#F7F7F8", margin: "0 0 12px 0", letterSpacing: "-0.02em" }}>{item.t}</h3>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: isMobile ? 13 : 14, color: "#A1A1AA", lineHeight: 1.7, margin: "0 0 20px 0" }}>{item.d}</p>
               <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 12px", borderRadius: 6, background: "rgba(247,147,26,0.1)", border: "1px solid rgba(247,147,26,0.2)", fontSize: 11, color: "#F7931A", fontWeight: 600 }}>{item.dt}</div>
             </div>
           ))}
@@ -1246,14 +1260,14 @@ export default function App({ initialPage = "home", initialView = "explore", ini
       </section>
 
       {/* ═══ LIVE YIELDS TABLE ═══ */}
-      <section id="protocols" style={{ position: "relative", zIndex: 1, padding: "80px 40px 120px", maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 56 }}>
+      <section id="protocols" style={{ position: "relative", zIndex: 1, padding: isMobile ? "60px 20px" : "80px 40px 120px", maxWidth: 1200, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: isMobile ? 32 : 56 }}>
           <div style={{ fontSize: 11, color: "#F7931A", textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 12, fontWeight: 600 }}>Live Yields</div>
-          <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: 42, fontWeight: 800, color: "#F7F7F8", margin: "0 0 12px 0", letterSpacing: "-0.03em" }}>What your Bitcoin could earn</h2>
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, color: "#52525B", margin: 0 }}>Real-time APY from {stats.count} protocols. Updated every 15 minutes.</p>
+          <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: isMobile ? 26 : 42, fontWeight: 800, color: "#F7F7F8", margin: "0 0 12px 0", letterSpacing: "-0.03em" }}>What your Bitcoin could earn</h2>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: isMobile ? 14 : 16, color: "#52525B", margin: 0 }}>Real-time APY from {stats.count} protocols.</p>
         </div>
-        <div style={{ borderRadius: 16, overflow: "hidden", background: "linear-gradient(160deg, #0D0E14, #111218)", border: "1px solid #1A1B25" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div style={{ borderRadius: 16, overflow: "hidden", background: "linear-gradient(160deg, #0D0E14, #111218)", border: "1px solid #1A1B25", overflowX: isMobile ? "auto" : "visible" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 600 : "auto" }}>
             <thead><tr>{["Protocol", "Category", "APY", "30d Trend", "TVL", "Risk", "Lockup"].map(h => (
               <th key={h} style={{ textAlign: "left", padding: "16px 20px", fontSize: 10, color: "#52525B", textTransform: "uppercase", letterSpacing: "0.12em", borderBottom: "1px solid #1A1B25", fontWeight: 600 }}>{h}</th>
             ))}</tr></thead>
@@ -1277,12 +1291,12 @@ export default function App({ initialPage = "home", initialView = "explore", ini
       </section>
 
       {/* ═══ STRATEGIES ═══ */}
-      <section id="strategies" style={{ position: "relative", zIndex: 1, padding: "80px 40px 120px", maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 56 }}>
+      <section id="strategies" style={{ position: "relative", zIndex: 1, padding: isMobile ? "60px 20px" : "80px 40px 120px", maxWidth: 1200, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: isMobile ? 32 : 56 }}>
           <div style={{ fontSize: 11, color: "#F7931A", textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 12, fontWeight: 600 }}>Strategies</div>
-          <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: 42, fontWeight: 800, color: "#F7F7F8", margin: "0 0 12px 0", letterSpacing: "-0.03em" }}>Pick your risk. Deploy in seconds.</h2>
+          <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: isMobile ? 26 : 42, fontWeight: 800, color: "#F7F7F8", margin: "0 0 12px 0", letterSpacing: "-0.03em" }}>Pick your risk. Deploy in seconds.</h2>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: isMobile ? 16 : 20 }}>
           {STRATEGIES.map((st, i) => (
             <div key={i} style={{ padding: 28, borderRadius: 16, background: "linear-gradient(160deg, #0D0E14, #111218)", border: "1px solid #1A1B25", transition: "all 0.3s" }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(247,147,26,0.2)"; e.currentTarget.style.transform = "translateY(-4px)"; }}
@@ -1338,37 +1352,37 @@ export default function App({ initialPage = "home", initialView = "explore", ini
         <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(247,147,26,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(247,147,26,0.03) 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
       </div>
 
-      <div style={{ position: "relative", zIndex: 1, maxWidth: 1320, margin: "0 auto", padding: "0 24px" }}>
+      <div style={{ position: "relative", zIndex: 1, maxWidth: 1320, margin: "0 auto", padding: isMobile ? "0 16px" : "0 24px" }}>
         {/* Header */}
-        <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 0", borderBottom: "1px solid rgba(247,147,26,0.12)", opacity: aIn ? 1 : 0, transform: aIn ? "translateY(0)" : "translateY(-10px)", transition: "all 0.6s cubic-bezier(0.22,1,0.36,1)" }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 14, cursor: "pointer", textDecoration: "none" }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, color: "#08090E", boxShadow: "0 0 20px rgba(247,147,26,0.3)" }}>yB</div>
-            <div><div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 17, color: "#F7F7F8", letterSpacing: "-0.02em" }}>yields<span style={{ color: "#F7931A" }}>on</span>bitcoin</div><div style={{ fontSize: 10, color: "#71717A", letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 1 }}>Every BTC yield. One dashboard.</div></div>
+        <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: isMobile ? "wrap" : "nowrap", gap: isMobile ? 12 : 0, padding: isMobile ? "16px 0" : "20px 0", borderBottom: "1px solid rgba(247,147,26,0.12)", opacity: aIn ? 1 : 0, transform: aIn ? "translateY(0)" : "translateY(-10px)", transition: "all 0.6s cubic-bezier(0.22,1,0.36,1)" }}>
+          <Link href="/" style={{ display: "flex", alignItems: "center", gap: isMobile ? 10 : 14, cursor: "pointer", textDecoration: "none" }}>
+            <div style={{ width: isMobile ? 32 : 36, height: isMobile ? 32 : 36, borderRadius: 8, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: isMobile ? 13 : 15, fontWeight: 700, color: "#08090E", boxShadow: "0 0 20px rgba(247,147,26,0.3)" }}>yB</div>
+            {!isMobile && <div><div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 17, color: "#F7F7F8", letterSpacing: "-0.02em" }}>yields<span style={{ color: "#F7931A" }}>on</span>bitcoin</div><div style={{ fontSize: 10, color: "#71717A", letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 1 }}>Every BTC yield. One dashboard.</div></div>}
           </Link>
-          <nav style={{ display: "flex", gap: 2, background: "#111218", borderRadius: 8, padding: 3, border: "1px solid #1E1F2A" }}>
+          <nav style={{ display: "flex", gap: 2, background: "#111218", borderRadius: 8, padding: 3, border: "1px solid #1E1F2A", order: isMobile ? 3 : 0, width: isMobile ? "100%" : "auto", justifyContent: isMobile ? "center" : "flex-start" }}>
             {[["explore", "Explore"], ["strategy", "Strategy"], ["allocate", "Allocate"]].map(([k, l]) => (
-              <Link key={k} href={`/${k}`} style={{ padding: "8px 20px", borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 500, background: view === k ? "rgba(247,147,26,0.12)" : "transparent", color: view === k ? "#F7931A" : "#71717A", transition: "all 0.2s", textDecoration: "none" }}>{l}</Link>
+              <Link key={k} href={`/${k}`} style={{ padding: isMobile ? "8px 16px" : "8px 20px", borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "'Sora', sans-serif", fontSize: isMobile ? 12 : 13, fontWeight: 500, background: view === k ? "rgba(247,147,26,0.12)" : "transparent", color: view === k ? "#F7931A" : "#71717A", transition: "all 0.2s", textDecoration: "none", flex: isMobile ? 1 : "none", textAlign: "center" }}>{l}</Link>
             ))}
           </nav>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <DataStatusIndicator priceStatus={priceStatus} protocolStatus={protocolStatus} onRefresh={handleRefresh} isValidating={isValidating} />
-            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, background: "#111218", border: "1px solid #1E1F2A", fontSize: 12, color: "#A1A1AA" }}><span style={{ color: "#F7931A", fontSize: 14 }}>₿</span><span style={{ color: "#F7F7F8", fontWeight: 600 }}>${btcPrice.toLocaleString()}</span></div>
-            <Link href="/portfolio" style={{ padding: "8px 20px", borderRadius: 8, border: "1px solid #F7931A", background: "linear-gradient(135deg, rgba(247,147,26,0.15), rgba(247,147,26,0.05))", color: "#F7931A", fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer", textDecoration: "none" }}>Portfolio</Link>
+          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 12 }}>
+            {!isMobile && <DataStatusIndicator priceStatus={priceStatus} protocolStatus={protocolStatus} onRefresh={handleRefresh} isValidating={isValidating} />}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: isMobile ? "5px 10px" : "6px 12px", borderRadius: 6, background: "#111218", border: "1px solid #1E1F2A", fontSize: isMobile ? 11 : 12, color: "#A1A1AA" }}><span style={{ color: "#F7931A", fontSize: isMobile ? 12 : 14 }}>₿</span><span style={{ color: "#F7F7F8", fontWeight: 600 }}>${btcPrice.toLocaleString()}</span></div>
+            <Link href="/portfolio" style={{ padding: isMobile ? "6px 14px" : "8px 20px", borderRadius: 8, border: "1px solid #F7931A", background: "linear-gradient(135deg, rgba(247,147,26,0.15), rgba(247,147,26,0.05))", color: "#F7931A", fontFamily: "'Sora', sans-serif", fontSize: isMobile ? 11 : 13, fontWeight: 600, cursor: "pointer", textDecoration: "none" }}>Portfolio</Link>
           </div>
         </header>
 
         {/* Stats */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, padding: "24px 0", opacity: aIn ? 1 : 0, transition: "all 0.6s cubic-bezier(0.22,1,0.36,1) 0.1s" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: isMobile ? 10 : 16, padding: isMobile ? "16px 0" : "24px 0", opacity: aIn ? 1 : 0, transition: "all 0.6s cubic-bezier(0.22,1,0.36,1) 0.1s" }}>
           {[
             { l: "Total Value Locked", v: formatTVL(stats.totalTVL), s: "across all protocols" },
             { l: "Average APY", v: `${stats.avgApy.toFixed(1)}%`, s: "weighted by TVL" },
             { l: "Highest Yield", v: `${stats.maxApy.toFixed(1)}%`, s: stats.highestProtocol?.name || "Top protocol", a: true },
             { l: "Protocols Tracked", v: stats.count.toString(), s: "and growing" },
           ].map((st, i) => (
-            <div key={i} style={{ padding: "18px 20px", borderRadius: 10, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
-              <div style={{ fontSize: 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>{st.l}</div>
-              <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 26, fontWeight: 700, color: st.a ? "#F7931A" : "#F7F7F8", letterSpacing: "-0.02em" }}>{st.v}</div>
-              <div style={{ fontSize: 11, color: "#52525B", marginTop: 2 }}>{st.s}</div>
+            <div key={i} style={{ padding: isMobile ? "12px 14px" : "18px 20px", borderRadius: 10, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
+              <div style={{ fontSize: isMobile ? 9 : 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: isMobile ? 4 : 6 }}>{st.l}</div>
+              <div style={{ fontFamily: "'Sora', sans-serif", fontSize: isMobile ? 18 : 26, fontWeight: 700, color: st.a ? "#F7931A" : "#F7F7F8", letterSpacing: "-0.02em" }}>{st.v}</div>
+              {!isMobile && <div style={{ fontSize: 11, color: "#52525B", marginTop: 2 }}>{st.s}</div>}
             </div>
           ))}
         </div>
@@ -1387,22 +1401,22 @@ export default function App({ initialPage = "home", initialView = "explore", ini
               />
             ) : (
               <>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-                  <div style={{ position: "relative", flex: "1 1 240px", maxWidth: 320 }}>
-                    <input type="text" placeholder="Search protocols..." value={search} onChange={e => setSearch(e.target.value)} style={{ width: "100%", padding: "10px 14px 10px 36px", borderRadius: 8, border: "1px solid #1E1F2A", background: "#111218", color: "#E4E4E7", fontSize: 13, fontFamily: "inherit", outline: "none" }} onFocus={e => e.target.style.borderColor = "#F7931A40"} onBlur={e => e.target.style.borderColor = "#1E1F2A"} />
+                <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 12, marginBottom: isMobile ? 16 : 20, flexWrap: "wrap" }}>
+                  <div style={{ position: "relative", flex: isMobile ? "1 1 100%" : "1 1 240px", maxWidth: isMobile ? "100%" : 320, order: isMobile ? 0 : 0 }}>
+                    <input type="text" placeholder="Search protocols..." value={search} onChange={e => setSearch(e.target.value)} style={{ width: "100%", padding: isMobile ? "10px 14px 10px 32px" : "10px 14px 10px 36px", borderRadius: 8, border: "1px solid #1E1F2A", background: "#111218", color: "#E4E4E7", fontSize: isMobile ? 14 : 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} onFocus={e => e.target.style.borderColor = "#F7931A40"} onBlur={e => e.target.style.borderColor = "#1E1F2A"} />
                     <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#52525B", fontSize: 14 }}>⌕</span>
                   </div>
                   {[[category, setCategory, CATEGORIES, "All Categories", 140], [riskFilter, setRiskFilter, RISK_LEVELS, "All Risk", 110]].map(([v, sv, opts, all, w], i) => (
-                    <select key={i} value={v} onChange={e => sv(e.target.value)} style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid #1E1F2A", background: "#111218", color: "#A1A1AA", fontSize: 12, fontFamily: "inherit", cursor: "pointer", outline: "none", minWidth: w }}>
-                      {opts.map(o => <option key={o} value={o}>{o === "All" ? all : o === "Low" || o === "Medium" || o === "High" ? `${o} Risk` : o}</option>)}
+                    <select key={i} value={v} onChange={e => sv(e.target.value)} style={{ padding: isMobile ? "8px 10px" : "10px 14px", borderRadius: 8, border: "1px solid #1E1F2A", background: "#111218", color: "#A1A1AA", fontSize: isMobile ? 11 : 12, fontFamily: "inherit", cursor: "pointer", outline: "none", minWidth: isMobile ? 0 : w, flex: isMobile ? 1 : "none" }}>
+                      {opts.map(o => <option key={o} value={o}>{o === "All" ? (isMobile ? "Category" : all) : o === "Low" || o === "Medium" || o === "High" ? `${o}` : o}</option>)}
                     </select>
                   ))}
-                  <select value={sort} onChange={e => setSort(e.target.value)} style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid #1E1F2A", background: "#111218", color: "#A1A1AA", fontSize: 12, fontFamily: "inherit", cursor: "pointer", outline: "none", minWidth: 140 }}>
+                  <select value={sort} onChange={e => setSort(e.target.value)} style={{ padding: isMobile ? "8px 10px" : "10px 14px", borderRadius: 8, border: "1px solid #1E1F2A", background: "#111218", color: "#A1A1AA", fontSize: isMobile ? 11 : 12, fontFamily: "inherit", cursor: "pointer", outline: "none", minWidth: isMobile ? 0 : 140, flex: isMobile ? 1 : "none" }}>
                     {SORT_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>
-                  {selectedProtocols.length >= 2 && <button onClick={() => setComparing(!comparing)} style={{ padding: "10px 18px", borderRadius: 8, border: comparing ? "1px solid #F7931A" : "1px solid #F7931A50", background: comparing ? "rgba(247,147,26,0.12)" : "transparent", color: "#F7931A", fontSize: 12, fontWeight: 600, fontFamily: "'Sora', sans-serif", cursor: "pointer" }}>{comparing ? "✕ Close" : `Compare (${selectedProtocols.length})`}</button>}
-                  <div style={{ flex: 1 }} />
-                  <Link href="/strategy" style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: "linear-gradient(135deg, #F7931A, #E8850F)", color: "#08090E", fontSize: 12, fontWeight: 700, fontFamily: "'Sora', sans-serif", cursor: "pointer", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, boxShadow: "0 2px 12px rgba(247,147,26,0.25)" }}>Build your Strategy →</Link>
+                  {!isMobile && selectedProtocols.length >= 2 && <button onClick={() => setComparing(!comparing)} style={{ padding: "10px 18px", borderRadius: 8, border: comparing ? "1px solid #F7931A" : "1px solid #F7931A50", background: comparing ? "rgba(247,147,26,0.12)" : "transparent", color: "#F7931A", fontSize: 12, fontWeight: 600, fontFamily: "'Sora', sans-serif", cursor: "pointer" }}>{comparing ? "✕ Close" : `Compare (${selectedProtocols.length})`}</button>}
+                  {!isMobile && <div style={{ flex: 1 }} />}
+                  {!isMobile && <Link href="/strategy" style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: "linear-gradient(135deg, #F7931A, #E8850F)", color: "#08090E", fontSize: 12, fontWeight: 700, fontFamily: "'Sora', sans-serif", cursor: "pointer", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, boxShadow: "0 2px 12px rgba(247,147,26,0.25)" }}>Build your Strategy →</Link>}
                 </div>
 
                 {comparing && selectedProtocols.length >= 2 && (
@@ -1415,10 +1429,10 @@ export default function App({ initialPage = "home", initialView = "explore", ini
                   </div>
                 )}
 
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))", gap: 14 }}>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(380px, 1fr))", gap: isMobile ? 12 : 14 }}>
                   {filteredProtocols.map(p => (
-                    <div key={p.id} onMouseEnter={() => setHProt(p.id)} onMouseLeave={() => setHProt(null)} onClick={() => openProtocol(p)}
-                      style={{ padding: 20, borderRadius: 12, cursor: "pointer", background: selectedProtocols.includes(p.id) ? "linear-gradient(135deg, rgba(247,147,26,0.08), #111218)" : hProt === p.id ? "linear-gradient(135deg, #151620, #111218)" : "linear-gradient(135deg, #111218, #0D0E14)", border: selectedProtocols.includes(p.id) ? "1px solid #F7931A40" : "1px solid #1E1F2A", transition: "all 0.25s", transform: hProt === p.id ? "translateY(-2px)" : "none", boxShadow: hProt === p.id ? `0 8px 32px ${p.color}10` : "none" }}>
+                    <div key={p.id} onMouseEnter={() => !isMobile && setHProt(p.id)} onMouseLeave={() => setHProt(null)} onClick={() => openProtocol(p)}
+                      style={{ padding: isMobile ? 16 : 20, borderRadius: 12, cursor: "pointer", background: selectedProtocols.includes(p.id) ? "linear-gradient(135deg, rgba(247,147,26,0.08), #111218)" : hProt === p.id ? "linear-gradient(135deg, #151620, #111218)" : "linear-gradient(135deg, #111218, #0D0E14)", border: selectedProtocols.includes(p.id) ? "1px solid #F7931A40" : "1px solid #1E1F2A", transition: "all 0.25s", transform: hProt === p.id && !isMobile ? "translateY(-2px)" : "none", boxShadow: hProt === p.id ? `0 8px 32px ${p.color}10` : "none" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                           <div style={{ width: 40, height: 40, borderRadius: 10, background: `${p.color}15`, border: `1px solid ${p.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, color: p.color }}>{p.logo}</div>
@@ -1445,13 +1459,13 @@ export default function App({ initialPage = "home", initialView = "explore", ini
         {/* ═══ STRATEGY ═══ */}
         {view === "strategy" && (
           <div>
-            <div style={{ marginBottom: 28 }}><h2 style={{ fontFamily: "'Sora'", fontSize: 22, fontWeight: 700, color: "#F7F7F8", margin: "0 0 6px 0" }}>Strategy Builder</h2><p style={{ fontSize: 13, color: "#71717A", margin: 0 }}>Pre-built strategies or build your own.</p></div>
-            <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 28, padding: 20, borderRadius: 12, background: "#111218", border: "1px solid #1E1F2A" }}>
+            <div style={{ marginBottom: isMobile ? 20 : 28 }}><h2 style={{ fontFamily: "'Sora'", fontSize: isMobile ? 20 : 22, fontWeight: 700, color: "#F7F7F8", margin: "0 0 6px 0" }}>Strategy Builder</h2><p style={{ fontSize: 13, color: "#71717A", margin: 0 }}>Pre-built strategies or build your own.</p></div>
+            <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center", gap: isMobile ? 10 : 16, marginBottom: isMobile ? 20 : 28, padding: isMobile ? 16 : 20, borderRadius: 12, background: "#111218", border: "1px solid #1E1F2A" }}>
               <div style={{ fontSize: 11, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.08em" }}>Your BTC</div>
-              <input type="text" value={btcAmount} onChange={e => setBtcAmount(e.target.value)} style={{ flex: 1, padding: "10px 14px", borderRadius: 8, border: "1px solid #1E1F2A", background: "#08090E", color: "#F7F7F8", fontSize: 22, fontFamily: "'Sora'", fontWeight: 700, outline: "none" }} />
+              <input type="text" value={btcAmount} onChange={e => setBtcAmount(e.target.value)} style={{ flex: 1, padding: "10px 14px", borderRadius: 8, border: "1px solid #1E1F2A", background: "#08090E", color: "#F7F7F8", fontSize: isMobile ? 18 : 22, fontFamily: "'Sora'", fontWeight: 700, outline: "none" }} />
               <div style={{ fontSize: 13, color: "#52525B" }}>≈ ${(parseFloat(btcAmount || 0) * btcPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 32 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 16, marginBottom: isMobile ? 24 : 32 }}>
               {STRATEGIES.map((st, i) => { const sel = selectedStrategy?.name === st.name; const ay = parseFloat(btcAmount || 0) * st.expectedApy / 100; return (
                 <div key={i} onClick={() => { setSelectedStrategy(sel ? null : st); setCustomAllocations({}); }} style={{ padding: 24, borderRadius: 12, cursor: "pointer", background: sel ? "linear-gradient(135deg, rgba(247,147,26,0.08), #111218)" : "linear-gradient(135deg, #111218, #0D0E14)", border: sel ? "1px solid #F7931A50" : "1px solid #1E1F2A", transition: "all 0.25s" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
@@ -1486,14 +1500,14 @@ export default function App({ initialPage = "home", initialView = "explore", ini
 
         {/* ═══ PORTFOLIO ═══ */}
         {view === "portfolio" && (
-          <PortfolioView btcPrice={btcPrice} protocols={PROTOCOLS} />
+          <PortfolioView btcPrice={btcPrice} protocols={PROTOCOLS} isMobile={isMobile} />
         )}
 
         {/* ═══ ALLOCATE ═══ */}
         {view === "allocate" && (
           <div>
-            <div style={{ marginBottom: 28 }}><h2 style={{ fontFamily: "'Sora'", fontSize: 22, fontWeight: 700, color: "#F7F7F8", margin: "0 0 6px 0" }}>Allocate Your Bitcoin</h2><p style={{ fontSize: 13, color: "#71717A", margin: 0 }}>Review and deploy with a single transaction.</p></div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 24 }}>
+            <div style={{ marginBottom: isMobile ? 20 : 28 }}><h2 style={{ fontFamily: "'Sora'", fontSize: isMobile ? 20 : 22, fontWeight: 700, color: "#F7F7F8", margin: "0 0 6px 0" }}>Allocate Your Bitcoin</h2><p style={{ fontSize: 13, color: "#71717A", margin: 0 }}>Review and deploy with a single transaction.</p></div>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 380px", gap: isMobile ? 16 : 24 }}>
               <div>
                 <div style={{ padding: 24, borderRadius: 12, marginBottom: 16, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A" }}>
                   <div style={{ fontSize: 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>Amount</div>
