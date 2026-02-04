@@ -463,18 +463,20 @@ function ProtocolDetail({ protocol, btcPrice, btcAmount, setBtcAmount, onBack, o
             </div>
 
             {/* CTA Button */}
-            <button
-              onClick={() => onAllocate(protocol)}
+            <a
+              href={protocol.website}
+              target="_blank"
+              rel="noopener noreferrer"
               style={{
                 width: "100%", padding: 16, borderRadius: 10, border: "none", cursor: "pointer",
                 background: "linear-gradient(135deg, #38BDF8, #0EA5E9)", color: "#08090E",
                 fontFamily: "'Sora', sans-serif", fontSize: 14, fontWeight: 700,
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                boxShadow: "0 4px 20px rgba(56, 189, 248, 0.3)"
+                boxShadow: "0 4px 20px rgba(56, 189, 248, 0.3)", textDecoration: "none", boxSizing: "border-box"
               }}
             >
-              <span style={{ fontSize: 16 }}>₿</span> Connect Wallet to Deposit
-            </button>
+              <span style={{ fontSize: 16 }}>↗</span> Allocate with {protocol.name}
+            </a>
 
             <p style={{ fontSize: 10, color: "#52525B", textAlign: "center", marginTop: 12, lineHeight: 1.5 }}>
               By depositing, you agree to the protocol's <span style={{ color: "#71717A", textDecoration: "underline", cursor: "pointer" }}>Terms of Service</span> and acknowledge the inherent smart contract risks.
