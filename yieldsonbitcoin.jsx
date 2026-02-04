@@ -235,9 +235,7 @@ function ProtocolDetail({ protocol, btcPrice, btcAmount, setBtcAmount, onBack, o
   const estYearlyYield = parseFloat(allocateAmount || 0) * protocol.apy / 100;
   const protocolFee = 0.05; // 0.05%
 
-  // Mock sentiment (random but deterministic based on protocol id)
-  const sentiment = 60 + (protocol.id * 7) % 35;
-
+  
   return (
     <div style={{ animation: "slideU 0.4s ease forwards" }}>
       {/* Breadcrumb */}
@@ -483,19 +481,6 @@ function ProtocolDetail({ protocol, btcPrice, btcAmount, setBtcAmount, onBack, o
             </p>
           </div>
 
-          {/* Market Sentiment */}
-          <div style={{ padding: 20, borderRadius: 12, background: "linear-gradient(135deg, #111218, #0D0E14)", border: "1px solid #1E1F2A", marginTop: 20 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-              <span style={{ color: "#A78BFA" }}>📈</span>
-              <h4 style={{ fontFamily: "'Sora', sans-serif", fontSize: 14, fontWeight: 600, color: "#F7F7F8", margin: 0 }}>Market Sentiment</h4>
-            </div>
-            <div style={{ height: 8, borderRadius: 4, background: "#1E1F2A", overflow: "hidden", marginBottom: 8 }}>
-              <div style={{ width: `${sentiment}%`, height: "100%", background: "linear-gradient(90deg, #EF4444, #FBBF24, #4ADE80)", borderRadius: 4 }} />
-            </div>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <span style={{ fontSize: 12, color: "#4ADE80", fontWeight: 500 }}>{sentiment}% Bullish</span>
-            </div>
-          </div>
         </div>
       </div>
     </div>
