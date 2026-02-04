@@ -1329,14 +1329,38 @@ export default function App({ initialPage = "home", initialView = "explore", ini
         </div>
       </section>
 
+      {/* ═══ FAQ ═══ */}
+      <section id="faq" style={{ position: "relative", zIndex: 1, padding: isMobile ? "60px 20px" : "80px 40px", maxWidth: 900, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: isMobile ? 32 : 48 }}>
+          <div style={{ fontSize: 11, color: "#F7931A", textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 12, fontWeight: 600 }}>FAQ</div>
+          <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: isMobile ? 26 : 36, fontWeight: 800, color: "#F7F7F8", margin: 0, letterSpacing: "-0.03em" }}>Frequently Asked Questions</h2>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {[
+            { q: "What is Bitcoin yield?", a: "Bitcoin yield refers to earning passive income on your BTC holdings through various DeFi protocols. This can include staking, lending, liquidity provision, and other strategies that generate returns on your Bitcoin." },
+            { q: "How do Bitcoin staking protocols work?", a: "Bitcoin staking protocols like Babylon allow you to stake your BTC to secure proof-of-stake blockchains while earning rewards. Your Bitcoin remains on the Bitcoin network, secured by its native security model, while providing economic security to other chains." },
+            { q: "What is liquid staking for Bitcoin?", a: "Liquid staking lets you stake your BTC and receive a liquid token (like LBTC or SolvBTC) in return. This token represents your staked position and can be used in DeFi to earn additional yield, giving you liquidity while your Bitcoin earns staking rewards." },
+            { q: "What are the risks of Bitcoin DeFi?", a: "Risks include smart contract vulnerabilities, bridge security (for wrapped Bitcoin), protocol-specific risks, and market volatility. We rate each protocol's risk level to help you make informed decisions. Always do your own research and never invest more than you can afford to lose." },
+            { q: "How are APY rates calculated?", a: "APY (Annual Percentage Yield) rates shown are sourced from DeFiLlama and the protocols themselves. Rates can fluctuate based on market conditions, protocol emissions, and demand. Historical APY data helps you understand rate stability over time." },
+            { q: "What is TVL and why does it matter?", a: "TVL (Total Value Locked) represents the total amount of assets deposited in a protocol. Higher TVL generally indicates more trust and liquidity, but it's just one factor to consider alongside security audits, team reputation, and protocol design." },
+          ].map((faq, i) => (
+            <div key={i} style={{ padding: isMobile ? "20px" : "24px 28px", borderRadius: 14, background: "linear-gradient(160deg, #0D0E14, #111218)", border: "1px solid #1A1B25" }}>
+              <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: isMobile ? 15 : 17, fontWeight: 700, color: "#F7F7F8", margin: "0 0 12px 0" }}>{faq.q}</h3>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: isMobile ? 13 : 14, color: "#A1A1AA", lineHeight: 1.7, margin: 0 }}>{faq.a}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Footer */}
-      <footer style={{ position: "relative", zIndex: 1, padding: "28px 40px", borderTop: "1px solid rgba(247,147,26,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <footer style={{ position: "relative", zIndex: 1, padding: isMobile ? "24px 20px" : "28px 40px", borderTop: "1px solid rgba(247,147,26,0.06)", display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 16 : 0, justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 22, height: 22, borderRadius: 5, background: "linear-gradient(135deg, #F7931A, #E8850F)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "#06070B" }}>yB</div>
           <span style={{ fontSize: 11, color: "#3F3F46" }}>© 2026 yieldsonbitcoin.com</span>
         </div>
-        <div style={{ display: "flex", gap: 24, fontSize: 12 }}>
-          {["Docs", "API", "Twitter", "Discord"].map(l => <span key={l} style={{ color: "#52525B", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }} onMouseEnter={e => e.target.style.color = "#A1A1AA"} onMouseLeave={e => e.target.style.color = "#52525B"}>{l}</span>)}
+        <div style={{ display: "flex", alignItems: "center", gap: 20, fontSize: 12 }}>
+          <span style={{ color: "#52525B", fontFamily: "'DM Sans', sans-serif" }}>made by</span>
+          <a href="https://twitter.com/jaybtc" target="_blank" rel="noopener noreferrer" style={{ color: "#F7931A", fontFamily: "'DM Sans', sans-serif", textDecoration: "none" }} onMouseEnter={e => e.target.style.textDecoration = "underline"} onMouseLeave={e => e.target.style.textDecoration = "none"}>@jaybtc</a>
         </div>
       </footer>
     </div>
@@ -1596,9 +1620,12 @@ export default function App({ initialPage = "home", initialView = "explore", ini
           </div>
         )}
 
-        <footer style={{ padding: "32px 0 24px", marginTop: 48, borderTop: "1px solid rgba(247,147,26,0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <footer style={{ padding: "32px 0 24px", marginTop: 48, borderTop: "1px solid rgba(247,147,26,0.08)", display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 0, justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ fontSize: 11, color: "#3F3F46" }}>© 2026 yieldsonbitcoin.com</div>
-          <div style={{ display: "flex", gap: 20, fontSize: 11, color: "#52525B" }}>{["Docs", "API", "Twitter", "Discord"].map(l => <span key={l} style={{ cursor: "pointer" }}>{l}</span>)}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 11 }}>
+            <span style={{ color: "#52525B" }}>made by</span>
+            <a href="https://twitter.com/jaybtc" target="_blank" rel="noopener noreferrer" style={{ color: "#F7931A", textDecoration: "none" }} onMouseEnter={e => e.target.style.textDecoration = "underline"} onMouseLeave={e => e.target.style.textDecoration = "none"}>@jaybtc</a>
+          </div>
         </footer>
       </div>
     </div>
